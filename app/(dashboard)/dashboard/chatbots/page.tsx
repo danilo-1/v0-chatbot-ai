@@ -24,13 +24,35 @@ export default async function ChatbotsPage() {
 
   try {
     if (userId) {
-      chatbots = await sql`
+      const result = await sql`
         SELECT c.*, u.name as "userName"
         FROM "Chatbot" c
         JOIN "User" u ON c."userId" = u.id
         WHERE c."userId" = ${userId}
         ORDER BY c."createdAt" DESC
       `
+
+      // Convert the result to a plain JavaScript array of objects
+      chatbots = result.map((row) => {
+        // Create a new object with all properties from the row
+        return {
+          id: row.id,
+          name: row.name,
+          description: row.description,
+          imageUrl: row.imageUrl,
+          isPublic: row.isPublic,
+          userId: row.userId,
+          userName: row.userName,
+          createdAt: row.createdAt,
+          updatedAt: row.updatedAt,
+          temperature: row.temperature,
+          maxTokens: row.maxTokens,
+          knowledgeBase: row.knowledgeBase,
+          customPrompt: row.customPrompt,
+          modelId: row.modelId,
+        }
+      })
+
       console.log(`Found ${chatbots.length} chatbots for user ${userId}`)
     }
   } catch (e) {

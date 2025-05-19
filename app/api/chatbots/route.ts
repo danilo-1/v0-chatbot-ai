@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
       console.log("Fetching chatbots for specific user:", userId)
 
       // Get user's chatbots with direct SQL
-      const chatbots = await sql`
+      const result = await sql`
         SELECT c.*, u.name as "userName"
         FROM "Chatbot" c
         JOIN "User" u ON c."userId" = u.id
@@ -34,19 +34,50 @@ export async function GET(req: NextRequest) {
         ORDER BY c."createdAt" DESC
       `
 
+      // Convert the result to a plain JavaScript array of objects
+      const chatbots = result.map((row) => ({
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        imageUrl: row.imageUrl,
+        isPublic: row.isPublic,
+        userId: row.userId,
+        userName: row.userName,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        temperature: row.temperature,
+        maxTokens: row.maxTokens,
+        knowledgeBase: row.knowledgeBase,
+        customPrompt: row.customPrompt,
+        modelId: row.modelId,
+      }))
+
       console.log(`Found ${chatbots.length} chatbots for user ${userId}`)
       return NextResponse.json(chatbots)
     } else {
       console.log("Fetching public chatbots")
 
       // Get public chatbots
-      const chatbots = await sql`
+      const result = await sql`
         SELECT c.*, u.name as "userName"
         FROM "Chatbot" c
         JOIN "User" u ON c."userId" = u.id
         WHERE c."isPublic" = true
         ORDER BY c."createdAt" DESC
       `
+
+      // Convert the result to a plain JavaScript array of objects
+      const chatbots = result.map((row) => ({
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        imageUrl: row.imageUrl,
+        isPublic: row.isPublic,
+        userId: row.userId,
+        userName: row.userName,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      }))
 
       console.log(`Found ${chatbots.length} public chatbots`)
       return NextResponse.json(chatbots)
@@ -128,6 +159,7 @@ export async function POST(req: NextRequest) {
           "maxTokens",
           "knowledgeBase",
           "customPrompt",
+          "modelId",
           "createdAt",
           "updatedAt"
         ) VALUES (
@@ -140,6 +172,7 @@ export async function POST(req: NextRequest) {
           ${data.maxTokens || 1000},
           ${data.knowledgeBase || ""},
           ${data.customPrompt || ""},
+          ${data.modelId || null},
           NOW(),
           NOW()
         )
@@ -160,7 +193,23 @@ export async function POST(req: NextRequest) {
 
       console.log("Verification query result:", verifyResult)
 
-      return NextResponse.json(result[0])
+      // Convert to a plain JavaScript object
+      const chatbot = {
+        id: verifyResult[0].id,
+        name: verifyResult[0].name,
+        description: verifyResult[0].description,
+        isPublic: verifyResult[0].isPublic,
+        userId: verifyResult[0].userId,
+        temperature: verifyResult[0].temperature,
+        maxTokens: verifyResult[0].maxTokens,
+        knowledgeBase: verifyResult[0].knowledgeBase,
+        customPrompt: verifyResult[0].customPrompt,
+        modelId: verifyResult[0].modelId,
+        createdAt: verifyResult[0].createdAt,
+        updatedAt: verifyResult[0].updatedAt,
+      }
+
+      return NextResponse.json(chatbot)
     } catch (dbError) {
       console.error("Database error:", dbError)
       return NextResponse.json(
