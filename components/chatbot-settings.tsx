@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
-import { Slider } from "@/components/ui/slider"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -21,10 +20,7 @@ interface ChatbotSettingsProps {
     name: string
     description: string | null
     isPublic: boolean
-    temperature: number
-    maxTokens: number
     knowledgeBase: string | null
-    customPrompt: string | null
   }
 }
 
@@ -38,10 +34,7 @@ export function ChatbotSettings({ chatbot }: ChatbotSettingsProps) {
     name: chatbot.name,
     description: chatbot.description || "",
     isPublic: chatbot.isPublic,
-    temperature: chatbot.temperature,
-    maxTokens: chatbot.maxTokens,
     knowledgeBase: chatbot.knowledgeBase || "",
-    customPrompt: chatbot.customPrompt || "",
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -51,14 +44,6 @@ export function ChatbotSettings({ chatbot }: ChatbotSettingsProps) {
 
   const handleSwitchChange = (checked: boolean) => {
     setFormData((prev) => ({ ...prev, isPublic: checked }))
-  }
-
-  const handleTemperatureChange = (value: number[]) => {
-    setFormData((prev) => ({ ...prev, temperature: value[0] }))
-  }
-
-  const handleMaxTokensChange = (value: number[]) => {
-    setFormData((prev) => ({ ...prev, maxTokens: value[0] }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -143,69 +128,6 @@ export function ChatbotSettings({ chatbot }: ChatbotSettingsProps) {
             <div className="flex items-center space-x-2">
               <Switch id="isPublic" checked={formData.isPublic} onCheckedChange={handleSwitchChange} />
               <Label htmlFor="isPublic">Make this chatbot public</Label>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>AI Settings</CardTitle>
-            <CardDescription>Customize how your AI chatbot responds.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="temperature">Temperature: {formData.temperature.toFixed(1)}</Label>
-                </div>
-                <Slider
-                  id="temperature"
-                  min={0}
-                  max={1}
-                  step={0.1}
-                  value={[formData.temperature]}
-                  onValueChange={handleTemperatureChange}
-                  className="mt-2"
-                />
-                <p className="text-sm text-muted-foreground mt-2">
-                  Lower values make responses more focused and deterministic. Higher values make responses more creative
-                  and varied.
-                </p>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="maxTokens">Max Tokens: {formData.maxTokens}</Label>
-                </div>
-                <Slider
-                  id="maxTokens"
-                  min={100}
-                  max={4000}
-                  step={100}
-                  value={[formData.maxTokens]}
-                  onValueChange={handleMaxTokensChange}
-                  className="mt-2"
-                />
-                <p className="text-sm text-muted-foreground mt-2">
-                  Maximum number of tokens (words) in the AI's response.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="customPrompt">Custom Prompt</Label>
-              <Textarea
-                id="customPrompt"
-                name="customPrompt"
-                value={formData.customPrompt}
-                onChange={handleChange}
-                rows={4}
-                placeholder="You are a helpful assistant for our company..."
-                className="font-mono text-sm"
-              />
-              <p className="text-sm text-muted-foreground">
-                Customize how your chatbot introduces itself and behaves. This is combined with the global prompt.
-              </p>
             </div>
           </CardContent>
         </Card>

@@ -71,29 +71,63 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: "Name is required" }, { status: 400 })
     }
 
-    // Update chatbot
-    const result = await sql`
-      UPDATE "Chatbot"
-      SET
-        name = ${data.name},
-        description = ${data.description || null},
-        "isPublic" = ${data.isPublic || false},
-        temperature = ${data.temperature || 0.7},
-        "maxTokens" = ${data.maxTokens || 1000},
-        "knowledgeBase" = ${data.knowledgeBase || null},
-        "customPrompt" = ${data.customPrompt || null},
-        "updatedAt" = NOW()
-      WHERE id = ${params.id}
-      RETURNING *
-    `
+    // Check if the request is from admin with AI settings
+    const isAdminWithAISettings =
+      session.user.email === "danilo.nsantana.dns@gmail.com" &&
+      (data.temperature !== undefined || data.maxTokens !== undefined || data.customPrompt !== undefined)
 
-    if (result.length === 0) {
-      console.error("No result returned from update")
-      throw new Error("Failed to update chatbot")
+    // If regular user, only update basic fields
+    if (!isAdminWithAISettings) {
+      console.log("Regular user update - preserving AI settings")
+
+      // Update chatbot without changing AI settings
+      const result = await sql`
+        UPDATE "Chatbot"
+        SET
+          name = ${data.name},
+          description = ${data.description || null},
+          "isPublic" = ${data.isPublic || false},
+          "knowledgeBase" = ${data.knowledgeBase || null},
+          "updatedAt" = NOW()
+        WHERE id = ${params.id}
+        RETURNING *
+      `
+
+      if (result.length === 0) {
+        console.error("No result returned from update")
+        throw new Error("Failed to update chatbot")
+      }
+
+      console.log("Chatbot updated successfully (basic fields only):", result[0].name)
+      return NextResponse.json(result[0])
+    } else {
+      // Admin update with AI settings
+      console.log("Admin update - including AI settings")
+
+      // Update chatbot with AI settings
+      const result = await sql`
+        UPDATE "Chatbot"
+        SET
+          name = ${data.name},
+          description = ${data.description || null},
+          "isPublic" = ${data.isPublic || false},
+          temperature = ${data.temperature || chatbot.temperature},
+          "maxTokens" = ${data.maxTokens || chatbot.maxTokens},
+          "knowledgeBase" = ${data.knowledgeBase || null},
+          "customPrompt" = ${data.customPrompt || chatbot.customPrompt},
+          "updatedAt" = NOW()
+        WHERE id = ${params.id}
+        RETURNING *
+      `
+
+      if (result.length === 0) {
+        console.error("No result returned from update")
+        throw new Error("Failed to update chatbot")
+      }
+
+      console.log("Chatbot updated successfully (all fields):", result[0].name)
+      return NextResponse.json(result[0])
     }
-
-    console.log("Chatbot updated successfully:", result[0].name)
-    return NextResponse.json(result[0])
   } catch (error) {
     console.error(`Error updating chatbot ${params.id}:`, error)
     return NextResponse.json(
