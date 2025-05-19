@@ -1,0 +1,2 @@
+# Don't ignore node_modules/.prisma
+!node_modules/.prisma
