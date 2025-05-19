@@ -2,33 +2,52 @@ import { openai } from "@ai-sdk/openai"
 import { streamText } from "ai"
 import prisma from "@/lib/db"
 import { sql } from "@/lib/db"
+import { toExtensibleObject, toExtensibleArray } from "@/lib/utils"
 
 export async function getChatbotById(id: string) {
-  return prisma.chatbot.findUnique({
-    where: { id },
-    include: {
-      model: true,
-    },
-  })
+  try {
+    const chatbot = await prisma.chatbot.findUnique({
+      where: { id },
+      include: {
+        model: true,
+      },
+    })
+    return toExtensibleObject(chatbot)
+  } catch (error) {
+    console.error("Error fetching chatbot by ID:", error)
+    return null
+  }
 }
 
 export async function getChatbotsByUserId(userId: string) {
-  return prisma.chatbot.findMany({
-    where: { userId },
-  })
+  try {
+    const chatbots = await prisma.chatbot.findMany({
+      where: { userId },
+    })
+    return toExtensibleArray(chatbots)
+  } catch (error) {
+    console.error("Error fetching chatbots by user ID:", error)
+    return []
+  }
 }
 
 export async function getPublicChatbots() {
-  return prisma.chatbot.findMany({
-    where: { isPublic: true },
-    include: {
-      user: {
-        select: {
-          name: true,
+  try {
+    const chatbots = await prisma.chatbot.findMany({
+      where: { isPublic: true },
+      include: {
+        user: {
+          select: {
+            name: true,
+          },
         },
       },
-    },
-  })
+    })
+    return toExtensibleArray(chatbots)
+  } catch (error) {
+    console.error("Error fetching public chatbots:", error)
+    return []
+  }
 }
 
 export async function createChatbot(data: {
@@ -43,15 +62,21 @@ export async function createChatbot(data: {
   customPrompt?: string
   modelId?: string
 }) {
-  // Se não for fornecido um modelId, use o modelo padrão
-  if (!data.modelId) {
-    const globalConfig = await getGlobalConfig()
-    data.modelId = globalConfig.defaultModelId
-  }
+  try {
+    // Se não for fornecido um modelId, use o modelo padrão
+    if (!data.modelId) {
+      const globalConfig = await getGlobalConfig()
+      data.modelId = globalConfig.defaultModelId
+    }
 
-  return prisma.chatbot.create({
-    data,
-  })
+    const chatbot = await prisma.chatbot.create({
+      data,
+    })
+    return toExtensibleObject(chatbot)
+  } catch (error) {
+    console.error("Error creating chatbot:", error)
+    throw error
+  }
 }
 
 export async function updateChatbot(
@@ -68,16 +93,28 @@ export async function updateChatbot(
     modelId?: string
   },
 ) {
-  return prisma.chatbot.update({
-    where: { id },
-    data,
-  })
+  try {
+    const chatbot = await prisma.chatbot.update({
+      where: { id },
+      data,
+    })
+    return toExtensibleObject(chatbot)
+  } catch (error) {
+    console.error(`Error updating chatbot with id ${id}:`, error)
+    throw error
+  }
 }
 
 export async function deleteChatbot(id: string) {
-  return prisma.chatbot.delete({
-    where: { id },
-  })
+  try {
+    const chatbot = await prisma.chatbot.delete({
+      where: { id },
+    })
+    return toExtensibleObject(chatbot)
+  } catch (error) {
+    console.error(`Error deleting chatbot with id ${id}:`, error)
+    throw error
+  }
 }
 
 export async function getGlobalConfig() {
@@ -107,10 +144,10 @@ export async function getGlobalConfig() {
         )
         RETURNING *
       `
-      return newConfig[0]
+      return toExtensibleObject(newConfig[0])
     }
 
-    return result[0]
+    return toExtensibleObject(result[0])
   } catch (error) {
     console.error("Error fetching global config:", error)
     // Return a default config if there's an error
@@ -149,7 +186,7 @@ export async function updateGlobalConfig(data: {
       RETURNING *
     `
 
-    return result[0]
+    return toExtensibleObject(result[0])
   } catch (error) {
     console.error("Error updating global config:", error)
     throw error
@@ -158,11 +195,12 @@ export async function updateGlobalConfig(data: {
 
 export async function getAIModels() {
   try {
-    return await prisma.aIModel.findMany({
+    const models = await prisma.aIModel.findMany({
       orderBy: {
         name: "asc",
       },
     })
+    return toExtensibleArray(models)
   } catch (error) {
     console.error("Error fetching AI models:", error)
     return []
@@ -171,9 +209,10 @@ export async function getAIModels() {
 
 export async function getAIModelById(id: string) {
   try {
-    return await prisma.aIModel.findUnique({
+    const model = await prisma.aIModel.findUnique({
       where: { id },
     })
+    return toExtensibleObject(model)
   } catch (error) {
     console.error(`Error fetching AI model with id ${id}:`, error)
     return null
@@ -188,12 +227,13 @@ export async function getDefaultAIModel() {
 
     if (!model) {
       // Fallback to gpt-4o if no default is set
-      return await prisma.aIModel.findUnique({
+      const fallbackModel = await prisma.aIModel.findUnique({
         where: { id: "gpt-4o" },
       })
+      return toExtensibleObject(fallbackModel)
     }
 
-    return model
+    return toExtensibleObject(model)
   } catch (error) {
     console.error("Error fetching default AI model:", error)
     // Return a default model if there's an error
@@ -227,9 +267,10 @@ export async function createAIModel(data: {
       })
     }
 
-    return await prisma.aIModel.create({
+    const model = await prisma.aIModel.create({
       data,
     })
+    return toExtensibleObject(model)
   } catch (error) {
     console.error("Error creating AI model:", error)
     throw error
@@ -259,10 +300,11 @@ export async function updateAIModel(
       })
     }
 
-    return await prisma.aIModel.update({
+    const model = await prisma.aIModel.update({
       where: { id },
       data,
     })
+    return toExtensibleObject(model)
   } catch (error) {
     console.error(`Error updating AI model with id ${id}:`, error)
     throw error
@@ -306,9 +348,10 @@ export async function deleteAIModel(id: string) {
       }
     }
 
-    return await prisma.aIModel.delete({
+    const model = await prisma.aIModel.delete({
       where: { id },
     })
+    return toExtensibleObject(model)
   } catch (error) {
     console.error(`Error deleting AI model with id ${id}:`, error)
     throw error
@@ -316,34 +359,35 @@ export async function deleteAIModel(id: string) {
 }
 
 export async function generateChatbotResponse(chatbotId: string, messages: { role: string; content: string }[]) {
-  // Get chatbot and global config
-  const [chatbot, globalConfig] = await Promise.all([getChatbotById(chatbotId), getGlobalConfig()])
+  try {
+    // Get chatbot and global config
+    const [chatbot, globalConfig] = await Promise.all([getChatbotById(chatbotId), getGlobalConfig()])
 
-  if (!chatbot) {
-    throw new Error("Chatbot not found")
-  }
+    if (!chatbot) {
+      throw new Error("Chatbot not found")
+    }
 
-  // Determine which model to use
-  let modelId = "gpt-4o" // Fallback default
+    // Determine which model to use
+    let modelId = "gpt-4o" // Fallback default
 
-  if (chatbot.modelId) {
-    // Use chatbot-specific model if set
-    modelId = chatbot.modelId
-  } else if (globalConfig.defaultModelId) {
-    // Otherwise use global default model
-    modelId = globalConfig.defaultModelId
-  }
+    if (chatbot.modelId) {
+      // Use chatbot-specific model if set
+      modelId = chatbot.modelId
+    } else if (globalConfig.defaultModelId) {
+      // Otherwise use global default model
+      modelId = globalConfig.defaultModelId
+    }
 
-  // Get the model details
-  const model = await getAIModelById(modelId)
+    // Get the model details
+    const model = await getAIModelById(modelId)
 
-  if (!model || !model.isActive) {
-    // Fallback to gpt-4o if model not found or not active
-    modelId = "gpt-4o"
-  }
+    if (!model || !model.isActive) {
+      // Fallback to gpt-4o if model not found or not active
+      modelId = "gpt-4o"
+    }
 
-  // Combine global and chatbot-specific configurations
-  const systemPrompt = `${globalConfig.globalPrompt}
+    // Combine global and chatbot-specific configurations
+    const systemPrompt = `${globalConfig.globalPrompt || ""}
 
 ${chatbot.customPrompt || ""}
 
@@ -360,16 +404,20 @@ Blocked Topics: ${globalConfig.blockedTopics || ""}
 You are a chatbot for ${chatbot.name}. Answer questions based on the provided knowledge base.
 If you don't know the answer, say so politely.`
 
-  // Create a new array with the system message at the beginning
-  const messagesWithSystem = [{ role: "system", content: systemPrompt }, ...messages]
+    // Create a new array with the system message at the beginning
+    const messagesWithSystem = [{ role: "system", content: systemPrompt }, ...messages]
 
-  // Generate response using the selected model
-  const result = streamText({
-    model: openai(modelId),
-    messages: messagesWithSystem,
-    temperature: chatbot.temperature || globalConfig.temperature || 0.7,
-    maxTokens: chatbot.maxTokens || globalConfig.maxTokens || 2000,
-  })
+    // Generate response using the selected model
+    const result = streamText({
+      model: openai(modelId),
+      messages: messagesWithSystem,
+      temperature: chatbot.temperature || globalConfig.temperature || 0.7,
+      maxTokens: chatbot.maxTokens || globalConfig.maxTokens || 2000,
+    })
 
-  return result
+    return result
+  } catch (error) {
+    console.error("Error generating chatbot response:", error)
+    throw error
+  }
 }
