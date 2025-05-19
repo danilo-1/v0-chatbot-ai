@@ -12,9 +12,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default function NewChatbotPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -37,6 +39,7 @@ export default function NewChatbotPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setError(null)
 
     try {
       console.log("Submitting form data:", formData)
@@ -51,23 +54,24 @@ export default function NewChatbotPage() {
 
       console.log("Response status:", response.status)
 
+      const data = await response.json()
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        console.error("API error:", errorData)
-        throw new Error(errorData.error || "Failed to create chatbot")
+        console.error("API error:", data)
+        throw new Error(data.details || data.error || "Failed to create chatbot")
       }
 
-      const chatbot = await response.json()
-      console.log("Created chatbot:", chatbot)
+      console.log("Created chatbot:", data)
 
       toast({
         title: "Chatbot created",
         description: "Your chatbot has been successfully created.",
       })
 
-      router.push(`/dashboard/chatbots/${chatbot.id}/playground`)
+      router.push(`/dashboard/chatbots/${data.id}/playground`)
     } catch (error) {
       console.error("Error creating chatbot:", error)
+      setError(error instanceof Error ? error.message : "Failed to create chatbot. Please try again.")
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create chatbot. Please try again.",
@@ -84,6 +88,13 @@ export default function NewChatbotPage() {
         <h1 className="text-3xl font-bold tracking-tight">Create New Chatbot</h1>
         <p className="text-muted-foreground">Fill in the details below to create your AI chatbot.</p>
       </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       <form onSubmit={handleSubmit}>
         <Card>
