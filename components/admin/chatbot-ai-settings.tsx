@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -12,6 +12,16 @@ import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
+// Adicionar interface para o modelo OpenAI
+interface OpenAIModel {
+  id: string
+  name: string
+  modelId: string
+  isDefault: boolean
+  maxTokens: number
+}
+
+// Modificar a interface ChatbotAISettingsProps para incluir modelId
 interface ChatbotAISettingsProps {
   chatbot: {
     id: string
@@ -19,6 +29,7 @@ interface ChatbotAISettingsProps {
     temperature: number
     maxTokens: number
     customPrompt: string | null
+    modelId?: string | null
   }
 }
 
@@ -27,12 +38,39 @@ export function ChatbotAISettings({ chatbot }: ChatbotAISettingsProps) {
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
 
+  // Adicionar estado para os modelos disponíveis
+  const [models, setModels] = useState<OpenAIModel[]>([])
+  const [isLoadingModels, setIsLoadingModels] = useState(true)
+
+  // Adicionar modelId ao formData
   const [formData, setFormData] = useState({
     id: chatbot.id,
     temperature: chatbot.temperature,
     maxTokens: chatbot.maxTokens,
     customPrompt: chatbot.customPrompt || "",
+    modelId: chatbot.modelId || "",
   })
+
+  // Adicionar useEffect para carregar os modelos
+  useEffect(() => {
+    const fetchModels = async () => {
+      setIsLoadingModels(true)
+      try {
+        const response = await fetch("/api/admin/openai-models")
+        if (!response.ok) {
+          throw new Error("Failed to fetch models")
+        }
+        const data = await response.json()
+        setModels(data.filter((model: OpenAIModel) => model.isActive))
+      } catch (error) {
+        console.error("Error fetching OpenAI models:", error)
+      } finally {
+        setIsLoadingModels(false)
+      }
+    }
+
+    fetchModels()
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -98,6 +136,35 @@ export function ChatbotAISettings({ chatbot }: ChatbotAISettingsProps) {
             <CardDescription>Customize how this chatbot responds.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Adicionar o select de modelo na CardContent, antes do campo de temperatura */}
+            <div className="space-y-2">
+              <Label htmlFor="modelId">OpenAI Model</Label>
+              {isLoadingModels ? (
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm text-muted-foreground">Loading models...</span>
+                </div>
+              ) : (
+                <select
+                  id="modelId"
+                  name="modelId"
+                  value={formData.modelId}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, modelId: e.target.value }))}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">Use Default Model</option>
+                  {models.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.name} {model.isDefault ? "(Default)" : ""}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <p className="text-sm text-muted-foreground">
+                Select which OpenAI model this chatbot should use. Leave empty to use the default model.
+              </p>
+            </div>
+
             <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between">
