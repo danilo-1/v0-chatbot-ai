@@ -39,6 +39,8 @@ export default function NewChatbotPage() {
     setIsSubmitting(true)
 
     try {
+      console.log("Submitting form data:", formData)
+
       const response = await fetch("/api/chatbots", {
         method: "POST",
         headers: {
@@ -47,11 +49,16 @@ export default function NewChatbotPage() {
         body: JSON.stringify(formData),
       })
 
+      console.log("Response status:", response.status)
+
       if (!response.ok) {
-        throw new Error("Failed to create chatbot")
+        const errorData = await response.json().catch(() => ({}))
+        console.error("API error:", errorData)
+        throw new Error(errorData.error || "Failed to create chatbot")
       }
 
       const chatbot = await response.json()
+      console.log("Created chatbot:", chatbot)
 
       toast({
         title: "Chatbot created",
@@ -60,9 +67,10 @@ export default function NewChatbotPage() {
 
       router.push(`/dashboard/chatbots/${chatbot.id}/playground`)
     } catch (error) {
+      console.error("Error creating chatbot:", error)
       toast({
         title: "Error",
-        description: "Failed to create chatbot. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to create chatbot. Please try again.",
         variant: "destructive",
       })
     } finally {
