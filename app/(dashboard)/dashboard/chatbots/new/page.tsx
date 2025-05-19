@@ -104,7 +104,14 @@ export default function NewChatbotPage() {
         description: "Your chatbot has been successfully created.",
       })
 
-      router.push(`/dashboard/chatbots/${data.id}/playground`)
+      // Force a refresh of the router cache before navigating
+      router.refresh()
+
+      // Wait a moment to ensure the refresh completes
+      setTimeout(() => {
+        // Navigate to the chatbots list instead of the playground
+        router.push("/dashboard/chatbots")
+      }, 500)
     } catch (error) {
       console.error("Error creating chatbot:", error)
       setError(error instanceof Error ? error.message : "Failed to create chatbot. Please try again.")

@@ -6,12 +6,26 @@ import { getToken } from "next-auth/jwt"
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    const searchParams = req.nextUrl.searchParams
-    const userId = searchParams.get("userId")
+    console.log("GET /api/chatbots - Starting")
 
-    if (userId && session?.user?.id === userId) {
-      // Get user's chatbots
+    const session = await getServerSession(authOptions)
+    const token = await getToken({ req })
+
+    // Try to get user ID from multiple sources
+    const userId = session?.user?.id || token?.sub || token?.id
+
+    console.log("User ID from session/token:", userId)
+
+    const searchParams = req.nextUrl.searchParams
+    const requestedUserId = searchParams.get("userId")
+
+    console.log("Requested user ID from query:", requestedUserId)
+
+    // If a specific user's chatbots are requested and it matches the authenticated user
+    if (requestedUserId && userId === requestedUserId) {
+      console.log("Fetching chatbots for specific user:", userId)
+
+      // Get user's chatbots with direct SQL
       const chatbots = await sql`
         SELECT c.*, u.name as "userName"
         FROM "Chatbot" c
@@ -19,8 +33,12 @@ export async function GET(req: NextRequest) {
         WHERE c."userId" = ${userId}
         ORDER BY c."createdAt" DESC
       `
+
+      console.log(`Found ${chatbots.length} chatbots for user ${userId}`)
       return NextResponse.json(chatbots)
     } else {
+      console.log("Fetching public chatbots")
+
       // Get public chatbots
       const chatbots = await sql`
         SELECT c.*, u.name as "userName"
@@ -29,6 +47,8 @@ export async function GET(req: NextRequest) {
         WHERE c."isPublic" = true
         ORDER BY c."createdAt" DESC
       `
+
+      console.log(`Found ${chatbots.length} public chatbots`)
       return NextResponse.json(chatbots)
     }
   } catch (error) {
@@ -90,7 +110,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "User not found in database" }, { status: 404 })
       }
 
-      // Create chatbot using SQL
+      // Generate a UUID for the chatbot
+      const uuidResult = await sql`SELECT gen_random_uuid() as uuid`
+      const chatbotId = uuidResult[0].uuid
+
+      console.log("Generated chatbot ID:", chatbotId)
+
+      // Create chatbot using SQL with explicit values
       const result = await sql`
         INSERT INTO "Chatbot" (
           id,
@@ -105,7 +131,7 @@ export async function POST(req: NextRequest) {
           "createdAt",
           "updatedAt"
         ) VALUES (
-          gen_random_uuid(),
+          ${chatbotId},
           ${data.name},
           ${data.description || ""},
           ${data.isPublic || false},
@@ -126,6 +152,13 @@ export async function POST(req: NextRequest) {
         console.error("No result returned from insert")
         throw new Error("No result returned from database")
       }
+
+      // Double-check that the chatbot was created
+      const verifyResult = await sql`
+        SELECT * FROM "Chatbot" WHERE id = ${chatbotId}
+      `
+
+      console.log("Verification query result:", verifyResult)
 
       return NextResponse.json(result[0])
     } catch (dbError) {

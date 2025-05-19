@@ -1,15 +1,42 @@
 import { getServerSession } from "next-auth/next"
-import { getChatbotsByUserId } from "@/backend/chatbot"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Bot, Edit, MessageSquare, Plus } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { DeleteChatbotButton } from "@/components/delete-chatbot-button"
+import { sql } from "@/lib/db"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+
+export const dynamic = "force-dynamic" // Disable caching for this page
 
 export default async function ChatbotsPage() {
-  const session = await getServerSession()
-  const chatbots = await getChatbotsByUserId(session?.user?.id || "")
+  const session = await getServerSession(authOptions)
+
+  // Get user ID from session
+  const userId = session?.user?.id
+
+  console.log("Chatbots page - User ID:", userId)
+
+  // Fetch chatbots directly with SQL
+  let chatbots = []
+  let error = null
+
+  try {
+    if (userId) {
+      chatbots = await sql`
+        SELECT c.*, u.name as "userName"
+        FROM "Chatbot" c
+        JOIN "User" u ON c."userId" = u.id
+        WHERE c."userId" = ${userId}
+        ORDER BY c."createdAt" DESC
+      `
+      console.log(`Found ${chatbots.length} chatbots for user ${userId}`)
+    }
+  } catch (e) {
+    console.error("Error fetching chatbots:", e)
+    error = e instanceof Error ? e.message : "Failed to fetch chatbots"
+  }
 
   return (
     <div className="space-y-6">
@@ -21,6 +48,12 @@ export default async function ChatbotsPage() {
           </Button>
         </Link>
       </div>
+
+      {error && (
+        <div className="bg-destructive/15 text-destructive p-4 rounded-md">
+          <p>Error loading chatbots: {error}</p>
+        </div>
+      )}
 
       {chatbots.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">

@@ -1,13 +1,38 @@
 import { getServerSession } from "next-auth/next"
-import { getChatbotsByUserId } from "@/backend/chatbot"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus } from "lucide-react"
 import Link from "next/link"
+import { sql } from "@/lib/db"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+
+export const dynamic = "force-dynamic" // Disable caching for this page
 
 export default async function DashboardPage() {
-  const session = await getServerSession()
-  const chatbots = await getChatbotsByUserId(session?.user?.id || "")
+  const session = await getServerSession(authOptions)
+
+  // Get user ID from session
+  const userId = session?.user?.id
+
+  console.log("Dashboard page - User ID:", userId)
+
+  // Fetch chatbots directly with SQL
+  let chatbots = []
+  let error = null
+
+  try {
+    if (userId) {
+      chatbots = await sql`
+        SELECT * FROM "Chatbot"
+        WHERE "userId" = ${userId}
+        ORDER BY "createdAt" DESC
+      `
+      console.log(`Found ${chatbots.length} chatbots for user ${userId}`)
+    }
+  } catch (e) {
+    console.error("Error fetching chatbots:", e)
+    error = e instanceof Error ? e.message : "Failed to fetch chatbots"
+  }
 
   return (
     <div className="space-y-6">
@@ -19,6 +44,12 @@ export default async function DashboardPage() {
           </Button>
         </Link>
       </div>
+
+      {error && (
+        <div className="bg-destructive/15 text-destructive p-4 rounded-md">
+          <p>Error loading chatbots: {error}</p>
+        </div>
+      )}
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
