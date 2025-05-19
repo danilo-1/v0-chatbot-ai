@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Bot, Home, Plus, Settings, BarChart } from "lucide-react"
+import { Bot, Home, Plus, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useSession } from "next-auth/react"
@@ -28,11 +28,6 @@ export function DashboardNav() {
       title: "Create New",
       href: "/dashboard/chatbots/new",
       icon: Plus,
-    },
-    {
-      title: "Telemetry",
-      href: "/dashboard/telemetry",
-      icon: BarChart,
     },
   ]
 

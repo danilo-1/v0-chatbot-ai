@@ -7,7 +7,6 @@ import Image from "next/image"
 import { DeleteChatbotButton } from "@/components/delete-chatbot-button"
 import { sql } from "@/lib/db"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
-import { toExtensibleArray } from "@/lib/utils"
 
 export const dynamic = "force-dynamic" // Disable caching for this page
 
@@ -25,25 +24,13 @@ export default async function ChatbotsPage() {
 
   try {
     if (userId) {
-      // Usar uma consulta SQL mais simples para evitar problemas
-      const result = await sql`
-        SELECT 
-          c.id, 
-          c.name, 
-          c.description, 
-          c."imageUrl", 
-          c."isPublic", 
-          c."userId", 
-          u.name as "userName"
+      chatbots = await sql`
+        SELECT c.*, u.name as "userName"
         FROM "Chatbot" c
         JOIN "User" u ON c."userId" = u.id
         WHERE c."userId" = ${userId}
         ORDER BY c."createdAt" DESC
       `
-
-      // Converter para objetos extensíveis
-      chatbots = toExtensibleArray(result)
-
       console.log(`Found ${chatbots.length} chatbots for user ${userId}`)
     }
   } catch (e) {

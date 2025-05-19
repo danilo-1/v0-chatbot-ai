@@ -4,7 +4,6 @@
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
-  binaryTargets   = ["native", "rhel-openssl-1.0.x"]
 }
 
 datasource db {
@@ -80,9 +79,6 @@ model Chatbot {
   
   // Custom prompt
   customPrompt  String  @default("")
-  
-  // AI Model
-  modelId      String?
 }
 
 model GlobalConfig {
@@ -92,17 +88,4 @@ model GlobalConfig {
   blockedTopics String @default("illegal activities, harmful content, personal information")
   maxTokens     Int    @default(2000)
   temperature   Float  @default(0.7)
-  defaultModelId String?
-}
-
-model AIModel {
-  id        String   @id
-  name      String
-  provider  String
-  modelId   String
-  isActive  Boolean  @default(true)
-  isDefault Boolean  @default(false)
-  maxTokens Int      @default(4096)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
