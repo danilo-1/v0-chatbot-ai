@@ -13,22 +13,24 @@ import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface ChatbotSettingsProps {
   chatbot: {
     id: string
     name: string
-    description: string
+    description: string | null
     isPublic: boolean
     temperature: number
     maxTokens: number
-    knowledgeBase: string
-    customPrompt: string
+    knowledgeBase: string | null
+    customPrompt: string | null
   }
 }
 
 export function ChatbotSettings({ chatbot }: ChatbotSettingsProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -38,8 +40,8 @@ export function ChatbotSettings({ chatbot }: ChatbotSettingsProps) {
     isPublic: chatbot.isPublic,
     temperature: chatbot.temperature,
     maxTokens: chatbot.maxTokens,
-    knowledgeBase: chatbot.knowledgeBase,
-    customPrompt: chatbot.customPrompt,
+    knowledgeBase: chatbot.knowledgeBase || "",
+    customPrompt: chatbot.customPrompt || "",
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -62,8 +64,11 @@ export function ChatbotSettings({ chatbot }: ChatbotSettingsProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setError(null)
 
     try {
+      console.log("Submitting chatbot update:", formData)
+
       const response = await fetch(`/api/chatbots/${chatbot.id}`, {
         method: "PUT",
         headers: {
@@ -72,20 +77,30 @@ export function ChatbotSettings({ chatbot }: ChatbotSettingsProps) {
         body: JSON.stringify(formData),
       })
 
+      console.log("Response status:", response.status)
+
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error("Failed to update chatbot")
+        console.error("API error:", data)
+        throw new Error(data.details || data.error || "Failed to update chatbot")
       }
+
+      console.log("Updated chatbot:", data)
 
       toast({
         title: "Settings saved",
         description: "Your chatbot settings have been updated.",
       })
 
+      // Force a refresh of the router cache
       router.refresh()
     } catch (error) {
+      console.error("Error updating chatbot:", error)
+      setError(error instanceof Error ? error.message : "Failed to update chatbot. Please try again.")
       toast({
         title: "Error",
-        description: "Failed to update chatbot. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to update chatbot. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -96,6 +111,13 @@ export function ChatbotSettings({ chatbot }: ChatbotSettingsProps) {
   return (
     <form onSubmit={handleSubmit}>
       <div className="space-y-6">
+        {error && (
+          <Alert variant="destructive">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>Basic Information</CardTitle>

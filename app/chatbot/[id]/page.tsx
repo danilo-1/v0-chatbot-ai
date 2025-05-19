@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation"
-import { getChatbotById } from "@/backend/chatbot"
+import { sql } from "@/lib/db"
 import { ChatPlayground } from "@/components/chat-playground"
 import { Button } from "@/components/ui/button"
 import { Bot } from "lucide-react"
 import Link from "next/link"
+
+// Disable caching for this page
+export const dynamic = "force-dynamic"
 
 interface ChatbotPageProps {
   params: {
@@ -12,9 +15,33 @@ interface ChatbotPageProps {
 }
 
 export default async function ChatbotPage({ params }: ChatbotPageProps) {
-  const chatbot = await getChatbotById(params.id)
+  console.log(`Rendering public chatbot page for ID: ${params.id}`)
+
+  // Fetch chatbot directly with SQL
+  let chatbot = null
+  let error = null
+
+  try {
+    const result = await sql`
+      SELECT c.*, u.name as "userName"
+      FROM "Chatbot" c
+      JOIN "User" u ON c."userId" = u.id
+      WHERE c.id = ${params.id}
+    `
+
+    if (result.length > 0) {
+      chatbot = result[0]
+      console.log("Found chatbot:", chatbot.name, "Public:", chatbot.isPublic)
+    } else {
+      console.log("Chatbot not found")
+    }
+  } catch (e) {
+    console.error("Error fetching chatbot:", e)
+    error = e instanceof Error ? e.message : "Failed to fetch chatbot"
+  }
 
   if (!chatbot || !chatbot.isPublic) {
+    console.log("Chatbot not found or not public, redirecting to catalog")
     redirect("/catalog")
   }
 
@@ -41,7 +68,14 @@ export default async function ChatbotPage({ params }: ChatbotPageProps) {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{chatbot.name}</h1>
             {chatbot.description && <p className="text-muted-foreground mt-2">{chatbot.description}</p>}
+            <p className="text-sm text-muted-foreground mt-1">Created by {chatbot.userName || "Anonymous"}</p>
           </div>
+
+          {error && (
+            <div className="bg-destructive/15 text-destructive p-4 rounded-md">
+              <p>Error: {error}</p>
+            </div>
+          )}
 
           <ChatPlayground chatbotId={chatbot.id} />
         </div>

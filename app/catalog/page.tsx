@@ -1,12 +1,35 @@
 import Link from "next/link"
 import Image from "next/image"
-import { getPublicChatbots } from "@/backend/chatbot"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Bot } from "lucide-react"
+import { sql } from "@/lib/db"
+
+// Disable caching for this page
+export const dynamic = "force-dynamic"
 
 export default async function CatalogPage() {
-  const chatbots = await getPublicChatbots()
+  console.log("Rendering catalog page")
+
+  // Fetch public chatbots directly with SQL
+  let chatbots = []
+  let error = null
+
+  try {
+    const result = await sql`
+      SELECT c.*, u.name as "userName"
+      FROM "Chatbot" c
+      JOIN "User" u ON c."userId" = u.id
+      WHERE c."isPublic" = true
+      ORDER BY c."createdAt" DESC
+    `
+
+    console.log(`Found ${result.length} public chatbots`)
+    chatbots = result
+  } catch (e) {
+    console.error("Error fetching public chatbots:", e)
+    error = e instanceof Error ? e.message : "Failed to fetch chatbots"
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -26,6 +49,12 @@ export default async function CatalogPage() {
       <main className="flex-1 container py-10">
         <h1 className="text-3xl font-bold mb-6">Chatbot Catalog</h1>
         <p className="text-muted-foreground mb-10">Explore our collection of public chatbots created by our users.</p>
+
+        {error && (
+          <div className="bg-destructive/15 text-destructive p-4 rounded-md mb-6">
+            <p>Error loading chatbots: {error}</p>
+          </div>
+        )}
 
         {chatbots.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
@@ -62,7 +91,7 @@ export default async function CatalogPage() {
                   </p>
                 </CardContent>
                 <CardFooter className="flex justify-between">
-                  <div className="text-sm text-muted-foreground">By {chatbot.user.name || "Anonymous"}</div>
+                  <div className="text-sm text-muted-foreground">By {chatbot.userName || "Anonymous"}</div>
                   <Link href={`/chatbot/${chatbot.id}`}>
                     <Button variant="outline" size="sm">
                       Try it
