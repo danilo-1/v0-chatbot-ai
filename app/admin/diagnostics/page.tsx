@@ -6,6 +6,13 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { sql } from "@/lib/db"
 import { redirect } from "next/navigation"
+import type { Metadata } from "next"
+import { DatabaseStatus } from "@/components/database-status"
+
+export const metadata: Metadata = {
+  title: "System Diagnostics",
+  description: "System diagnostics and troubleshooting",
+}
 
 async function DiagnosticsContent() {
   const session = await getServerSession(authOptions)
@@ -119,11 +126,15 @@ async function DiagnosticsContent() {
 
 export default function DiagnosticsPage() {
   return (
-    <div className="container py-10">
+    <div className="container mx-auto py-10">
       <h1 className="text-3xl font-bold mb-6">System Diagnostics</h1>
-      <Suspense fallback={<div>Loading diagnostics...</div>}>
-        <DiagnosticsContent />
-      </Suspense>
+
+      <div className="grid gap-6">
+        <Suspense fallback={<div>Loading diagnostics...</div>}>
+          <DiagnosticsContent />
+        </Suspense>
+        <DatabaseStatus />
+      </div>
     </div>
   )
 }

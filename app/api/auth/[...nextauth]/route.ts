@@ -11,29 +11,107 @@ if (missingEnvVars.length > 0) {
   console.error(`Missing required environment variables: ${missingEnvVars.join(", ")}`)
 }
 
-// Create a more resilient adapter
+// Create a more resilient adapter with connection retries
 const createAdapter = () => {
-  try {
-    return PrismaAdapter(prisma)
-  } catch (error) {
-    console.error("Error creating Prisma adapter:", error)
-    // Return a minimal adapter that logs errors
-    return {
-      createUser: async (data) => {
-        console.error("Adapter error - createUser called but adapter failed to initialize")
-        throw new Error("Database adapter not initialized properly")
-      },
-      getUser: async (id) => {
-        console.error("Adapter error - getUser called but adapter failed to initialize")
-        return null
-      },
-      getUserByEmail: async (email) => {
-        console.error("Adapter error - getUserByEmail called but adapter failed to initialize")
-        return null
-      },
-      // Add other required methods with similar error handling
-    }
+  // Create a wrapper around the Prisma adapter with retry logic
+  const adapter = PrismaAdapter(prisma)
+
+  // Wrap each method with retry logic
+  const wrappedAdapter = {
+    ...adapter,
+    // Example of wrapping a method with retry logic
+    getUserByAccount: async (params) => {
+      const maxRetries = 3
+      let lastError
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          return await adapter.getUserByAccount(params)
+        } catch (error) {
+          console.error(`Attempt ${attempt}/${maxRetries} failed:`, error)
+          lastError = error
+
+          // Wait before retrying (exponential backoff)
+          if (attempt < maxRetries) {
+            const delay = Math.min(100 * Math.pow(2, attempt), 3000)
+            await new Promise((resolve) => setTimeout(resolve, delay))
+          }
+        }
+      }
+
+      // If all retries failed, throw the last error
+      throw lastError
+    },
+    createUser: async (data) => {
+      const maxRetries = 3
+      let lastError
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          return await adapter.createUser(data)
+        } catch (error) {
+          console.error(`Attempt ${attempt}/${maxRetries} failed:`, error)
+          lastError = error
+
+          // Wait before retrying (exponential backoff)
+          if (attempt < maxRetries) {
+            const delay = Math.min(100 * Math.pow(2, attempt), 3000)
+            await new Promise((resolve) => setTimeout(resolve, delay))
+          }
+        }
+      }
+
+      // If all retries failed, throw the last error
+      throw lastError
+    },
+    getUser: async (id) => {
+      const maxRetries = 3
+      let lastError
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          return await adapter.getUser(id)
+        } catch (error) {
+          console.error(`Attempt ${attempt}/${maxRetries} failed:`, error)
+          lastError = error
+
+          // Wait before retrying (exponential backoff)
+          if (attempt < maxRetries) {
+            const delay = Math.min(100 * Math.pow(2, attempt), 3000)
+            await new Promise((resolve) => setTimeout(resolve, delay))
+          }
+        }
+      }
+
+      // If all retries failed, throw the last error
+      throw lastError
+    },
+    getUserByEmail: async (email) => {
+      const maxRetries = 3
+      let lastError
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          return await adapter.getUserByEmail(email)
+        } catch (error) {
+          console.error(`Attempt ${attempt}/${maxRetries} failed:`, error)
+          lastError = error
+
+          // Wait before retrying (exponential backoff)
+          if (attempt < maxRetries) {
+            const delay = Math.min(100 * Math.pow(2, attempt), 3000)
+            await new Promise((resolve) => setTimeout(resolve, delay))
+          }
+        }
+      }
+
+      // If all retries failed, throw the last error
+      throw lastError
+    },
+    // Add other required methods with similar error handling
   }
+
+  return wrappedAdapter
 }
 
 export const authOptions = {
