@@ -12,13 +12,36 @@ neonConfig.fetchConnectionCache = true
 neonConfig.fetchRetryTimeout = 5000 // 5 seconds
 neonConfig.fetchRetryMaxCount = 5
 
+// Log database connection information (without sensitive data)
+const dbUrl = process.env.DATABASE_URL || ""
+if (!dbUrl) {
+  console.error("DATABASE_URL environment variable is not set")
+} else {
+  try {
+    const maskedUrl = dbUrl.replace(/:[^:@]*@/, ":****@")
+    const urlObj = new URL(dbUrl)
+    console.log(`Database connection info: ${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`)
+  } catch (error) {
+    console.error("Invalid DATABASE_URL format:", error)
+  }
+}
+
 // Create a connection pool for better performance and reliability
-const connectionString = process.env.DATABASE_URL || ""
-const pool = new Pool({ connectionString })
+let pool: Pool | null = null
+try {
+  pool = new Pool({ connectionString: dbUrl })
+  console.log("Database connection pool initialized")
+} catch (error) {
+  console.error("Failed to initialize connection pool:", error)
+}
 
 // Create a SQL client using Neon with better error handling
 export const sql = async (query: string, ...args: any[]) => {
   try {
+    if (!pool) {
+      throw new Error("Database connection pool not initialized")
+    }
+
     // Use the pool for better connection management
     return await pool.query(query, args)
   } catch (error) {
@@ -30,26 +53,20 @@ export const sql = async (query: string, ...args: any[]) => {
 
 // Create a new PrismaClient instance with better error handling and connection settings
 const prismaClientSingleton = () => {
-  return new PrismaClient({
-    log: ["error", "warn"],
-    errorFormat: "pretty",
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
-      },
-    },
-    // Add connection timeout and retry settings
-    __internal: {
-      engine: {
-        connectionTimeout: 10000, // 10 seconds
-        retry: {
-          maxRetries: 5,
-          initialDelay: 500, // 500ms
-          maxDelay: 5000, // 5 seconds
+  try {
+    return new PrismaClient({
+      log: ["error", "warn"],
+      errorFormat: "pretty",
+      datasources: {
+        db: {
+          url: dbUrl,
         },
       },
-    },
-  })
+    })
+  } catch (error) {
+    console.error("Failed to initialize Prisma client:", error)
+    throw error
+  }
 }
 
 // Use type for global to avoid TypeScript errors
@@ -61,11 +78,18 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 // Create or reuse the Prisma client
-const prisma = globalForPrisma.prisma ?? prismaClientSingleton()
+let prisma: PrismaClientSingleton
 
-// Only set the global variable in development
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma
+try {
+  prisma = globalForPrisma.prisma ?? prismaClientSingleton()
+
+  // Only set the global variable in development
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prisma = prisma
+  }
+} catch (error) {
+  console.error("Error initializing Prisma client:", error)
+  throw error
 }
 
 // Test the connection on initialization without blocking
