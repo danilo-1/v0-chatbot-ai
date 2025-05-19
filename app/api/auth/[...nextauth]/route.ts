@@ -5,27 +5,126 @@ import prisma from "@/lib/db"
 
 // Verify required environment variables
 const requiredEnvVars = ["NEXTAUTH_URL", "NEXTAUTH_SECRET", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"]
+const missingEnvVars = requiredEnvVars.filter((envVar) => !process.env[envVar])
 
-for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
-    console.error(`Missing required environment variable: ${envVar}`)
+if (missingEnvVars.length > 0) {
+  console.error(`Missing required environment variables: ${missingEnvVars.join(", ")}`)
+}
+
+// Create a more resilient adapter with connection retries
+const createAdapter = () => {
+  // Create a wrapper around the Prisma adapter with retry logic
+  const adapter = PrismaAdapter(prisma)
+
+  // Wrap each method with retry logic
+  const wrappedAdapter = {
+    ...adapter,
+    // Example of wrapping a method with retry logic
+    getUserByAccount: async (params) => {
+      const maxRetries = 3
+      let lastError
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          return await adapter.getUserByAccount(params)
+        } catch (error) {
+          console.error(`Attempt ${attempt}/${maxRetries} failed:`, error)
+          lastError = error
+
+          // Wait before retrying (exponential backoff)
+          if (attempt < maxRetries) {
+            const delay = Math.min(100 * Math.pow(2, attempt), 3000)
+            await new Promise((resolve) => setTimeout(resolve, delay))
+          }
+        }
+      }
+
+      // If all retries failed, throw the last error
+      throw lastError
+    },
+    createUser: async (data) => {
+      const maxRetries = 3
+      let lastError
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          return await adapter.createUser(data)
+        } catch (error) {
+          console.error(`Attempt ${attempt}/${maxRetries} failed:`, error)
+          lastError = error
+
+          // Wait before retrying (exponential backoff)
+          if (attempt < maxRetries) {
+            const delay = Math.min(100 * Math.pow(2, attempt), 3000)
+            await new Promise((resolve) => setTimeout(resolve, delay))
+          }
+        }
+      }
+
+      // If all retries failed, throw the last error
+      throw lastError
+    },
+    getUser: async (id) => {
+      const maxRetries = 3
+      let lastError
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          return await adapter.getUser(id)
+        } catch (error) {
+          console.error(`Attempt ${attempt}/${maxRetries} failed:`, error)
+          lastError = error
+
+          // Wait before retrying (exponential backoff)
+          if (attempt < maxRetries) {
+            const delay = Math.min(100 * Math.pow(2, attempt), 3000)
+            await new Promise((resolve) => setTimeout(resolve, delay))
+          }
+        }
+      }
+
+      // If all retries failed, throw the last error
+      throw lastError
+    },
+    getUserByEmail: async (email) => {
+      const maxRetries = 3
+      let lastError
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          return await adapter.getUserByEmail(email)
+        } catch (error) {
+          console.error(`Attempt ${attempt}/${maxRetries} failed:`, error)
+          lastError = error
+
+          // Wait before retrying (exponential backoff)
+          if (attempt < maxRetries) {
+            const delay = Math.min(100 * Math.pow(2, attempt), 3000)
+            await new Promise((resolve) => setTimeout(resolve, delay))
+          }
+        }
+      }
+
+      // If all retries failed, throw the last error
+      throw lastError
+    },
+    // Add other required methods with similar error handling
   }
+
+  return wrappedAdapter
 }
 
 export const authOptions = {
-  adapter: PrismaAdapter(prisma),
+  adapter: createAdapter(),
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
     }),
   ],
   callbacks: {
     async session({ session, user, token }) {
       try {
-        console.log("Session callback - token:", token)
-        console.log("Session callback - user:", user)
-
         // When using JWT strategy, user comes from token
         if (token && session.user) {
           session.user.id = token.sub || token.id
@@ -36,16 +135,20 @@ export const authOptions = {
           session.user.id = user.id
 
           // Get user from database to get role
-          const dbUser = await prisma.user.findUnique({
-            where: { id: user.id },
-          })
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { id: user.id },
+            })
 
-          if (dbUser) {
-            session.user.role = dbUser.role
+            if (dbUser) {
+              session.user.role = dbUser.role
+            }
+          } catch (error) {
+            console.error("Error fetching user role:", error)
+            // Continue without role information
           }
         }
 
-        console.log("Final session:", session)
         return session
       } catch (error) {
         console.error("Session callback error:", error)
