@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,7 +16,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default function NewChatbotPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -26,6 +28,30 @@ export default function NewChatbotPage() {
     isPublic: false,
     knowledgeBase: "",
   })
+
+  // Check user authentication on component mount
+  useEffect(() => {
+    async function checkUser() {
+      try {
+        const response = await fetch("/api/auth/user")
+
+        if (!response.ok) {
+          const data = await response.json()
+          throw new Error(data.error || "Failed to verify user")
+        }
+
+        const userData = await response.json()
+        setUserId(userData.id)
+      } catch (error) {
+        console.error("Error checking user:", error)
+        setError(error instanceof Error ? error.message : "Failed to verify user authentication")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    checkUser()
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -41,15 +67,25 @@ export default function NewChatbotPage() {
     setIsSubmitting(true)
     setError(null)
 
+    if (!userId) {
+      setError("User authentication issue. Please try logging out and back in.")
+      setIsSubmitting(false)
+      return
+    }
+
     try {
       console.log("Submitting form data:", formData)
+      console.log("User ID:", userId)
 
       const response = await fetch("/api/chatbots", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          userId: userId, // Explicitly include userId in the request
+        }),
       })
 
       console.log("Response status:", response.status)
@@ -80,6 +116,14 @@ export default function NewChatbotPage() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   return (

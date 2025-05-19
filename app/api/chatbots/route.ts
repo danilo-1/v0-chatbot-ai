@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { sql } from "@/lib/db"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { getToken } from "next-auth/jwt"
 
 export async function GET(req: NextRequest) {
   try {
@@ -40,15 +41,22 @@ export async function POST(req: NextRequest) {
   try {
     console.log("POST /api/chatbots - Starting")
 
+    // Get session using both methods to ensure we have user ID
     const session = await getServerSession(authOptions)
-    console.log("Session:", session ? "exists" : "null")
+    const token = await getToken({ req })
 
-    if (!session?.user) {
-      console.log("Unauthorized - No session or user")
-      return NextResponse.json({ error: "Unauthorized - No valid session" }, { status: 401 })
+    console.log("Session from getServerSession:", session)
+    console.log("Token from getToken:", token)
+
+    // Try to get user ID from multiple sources
+    const userId = session?.user?.id || token?.sub || token?.id
+
+    console.log("Resolved userId:", userId)
+
+    if (!userId) {
+      console.log("Unauthorized - No valid user ID found")
+      return NextResponse.json({ error: "Unauthorized - No valid user ID found" }, { status: 401 })
     }
-
-    console.log("User ID from session:", session.user.id)
 
     let data
     try {
@@ -65,23 +73,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 })
     }
 
-    console.log("Attempting to create chatbot in database")
+    console.log("Attempting to create chatbot in database with userId:", userId)
 
     try {
-      // Check if Chatbot table exists
-      const tableCheck = await sql`
+      // Check if User exists
+      const userCheck = await sql`
         SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_schema = 'public'
-          AND table_name = 'Chatbot'
+          SELECT 1 FROM "User" WHERE id = ${userId}
         )
       `
 
-      console.log("Table check result:", tableCheck)
+      console.log("User check result:", userCheck)
 
-      if (!tableCheck[0].exists) {
-        console.error("Chatbot table does not exist")
-        return NextResponse.json({ error: "Database schema not initialized" }, { status: 500 })
+      if (!userCheck[0].exists) {
+        console.error("User does not exist in database")
+        return NextResponse.json({ error: "User not found in database" }, { status: 404 })
       }
 
       // Create chatbot using SQL
@@ -103,7 +109,7 @@ export async function POST(req: NextRequest) {
           ${data.name},
           ${data.description || ""},
           ${data.isPublic || false},
-          ${session.user.id},
+          ${userId},
           ${data.temperature || 0.7},
           ${data.maxTokens || 1000},
           ${data.knowledgeBase || ""},
