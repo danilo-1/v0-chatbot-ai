@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth/next"
 import { sql } from "@/lib/db"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { getToken } from "next-auth/jwt"
-import { toExtensibleArray } from "@/lib/utils"
 
 export async function GET(req: NextRequest) {
   try {
@@ -27,23 +26,13 @@ export async function GET(req: NextRequest) {
       console.log("Fetching chatbots for specific user:", userId)
 
       // Get user's chatbots with direct SQL
-      const result = await sql`
-        SELECT 
-          c.id, 
-          c.name, 
-          c.description, 
-          c."imageUrl", 
-          c."isPublic", 
-          c."userId", 
-          u.name as "userName"
+      const chatbots = await sql`
+        SELECT c.*, u.name as "userName"
         FROM "Chatbot" c
         JOIN "User" u ON c."userId" = u.id
         WHERE c."userId" = ${userId}
         ORDER BY c."createdAt" DESC
       `
-
-      // Converter para objetos extensíveis
-      const chatbots = toExtensibleArray(result)
 
       console.log(`Found ${chatbots.length} chatbots for user ${userId}`)
       return NextResponse.json(chatbots)
@@ -51,23 +40,13 @@ export async function GET(req: NextRequest) {
       console.log("Fetching public chatbots")
 
       // Get public chatbots
-      const result = await sql`
-        SELECT 
-          c.id, 
-          c.name, 
-          c.description, 
-          c."imageUrl", 
-          c."isPublic", 
-          c."userId", 
-          u.name as "userName"
+      const chatbots = await sql`
+        SELECT c.*, u.name as "userName"
         FROM "Chatbot" c
         JOIN "User" u ON c."userId" = u.id
         WHERE c."isPublic" = true
         ORDER BY c."createdAt" DESC
       `
-
-      // Converter para objetos extensíveis
-      const chatbots = toExtensibleArray(result)
 
       console.log(`Found ${chatbots.length} public chatbots`)
       return NextResponse.json(chatbots)
@@ -149,7 +128,6 @@ export async function POST(req: NextRequest) {
           "maxTokens",
           "knowledgeBase",
           "customPrompt",
-          "modelId",
           "createdAt",
           "updatedAt"
         ) VALUES (
@@ -162,7 +140,6 @@ export async function POST(req: NextRequest) {
           ${data.maxTokens || 1000},
           ${data.knowledgeBase || ""},
           ${data.customPrompt || ""},
-          ${data.modelId || null},
           NOW(),
           NOW()
         )
@@ -183,10 +160,7 @@ export async function POST(req: NextRequest) {
 
       console.log("Verification query result:", verifyResult)
 
-      // Converter para objeto extensível
-      const chatbot = toExtensibleArray(verifyResult)[0]
-
-      return NextResponse.json(chatbot)
+      return NextResponse.json(result[0])
     } catch (dbError) {
       console.error("Database error:", dbError)
       return NextResponse.json(

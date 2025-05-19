@@ -1,34 +1,35 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { getToken } from "next-auth/jwt"
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   try {
-    // Existing middleware logic here
+    const token = await getToken({ req: request })
 
-    // Return the response
+    // Check if the path starts with /dashboard
+    if (request.nextUrl.pathname.startsWith("/dashboard")) {
+      if (!token) {
+        // Redirect to login if not authenticated
+        return NextResponse.redirect(new URL("/login", request.url))
+      }
+
+      // Check for admin routes
+      if (request.nextUrl.pathname.startsWith("/dashboard/admin")) {
+        // Only allow specific admin email
+        if (token.email !== "danilo.nsantana.dns@gmail.com") {
+          return NextResponse.redirect(new URL("/dashboard", request.url))
+        }
+      }
+    }
+
     return NextResponse.next()
   } catch (error) {
     console.error("Middleware error:", error)
-
-    // Log detailed information about the request
-    console.error("Request URL:", request.url)
-    console.error("Request method:", request.method)
-    console.error("Request headers:", Object.fromEntries(request.headers))
-
-    // Continue to the application, which will handle the error
+    // Continue to the application even if middleware fails
     return NextResponse.next()
   }
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public (public files)
-     */
-    "/((?!_next/static|_next/image|favicon.ico|public).*)",
-  ],
+  matcher: ["/dashboard/:path*"],
 }

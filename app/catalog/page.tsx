@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Bot } from "lucide-react"
 import { sql } from "@/lib/db"
-import { toExtensibleArray } from "@/lib/utils"
 
 // Disable caching for this page
 export const dynamic = "force-dynamic"
@@ -18,14 +17,7 @@ export default async function CatalogPage() {
 
   try {
     const result = await sql`
-      SELECT 
-        c.id, 
-        c.name, 
-        c.description, 
-        c."imageUrl", 
-        c."isPublic", 
-        c."userId", 
-        u.name as "userName"
+      SELECT c.*, u.name as "userName"
       FROM "Chatbot" c
       JOIN "User" u ON c."userId" = u.id
       WHERE c."isPublic" = true
@@ -33,9 +25,7 @@ export default async function CatalogPage() {
     `
 
     console.log(`Found ${result.length} public chatbots`)
-
-    // Converter para objetos extensíveis
-    chatbots = toExtensibleArray(result)
+    chatbots = result
   } catch (e) {
     console.error("Error fetching public chatbots:", e)
     error = e instanceof Error ? e.message : "Failed to fetch chatbots"

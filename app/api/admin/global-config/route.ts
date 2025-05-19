@@ -12,24 +12,10 @@ export async function GET() {
 
   try {
     // Use direct SQL query instead of Prisma
-    const result = await sql`
-      SELECT g.*, m.name as "defaultModelName", m."modelId" as "defaultModelIdentifier"
-      FROM "GlobalConfig" g
-      LEFT JOIN "AIModel" m ON g."defaultModelId" = m.id
-      WHERE g.id = 'global'
-    `
+    const result = await sql`SELECT * FROM "GlobalConfig" WHERE id = 'global'`
 
     // If no config exists, create one
     if (result.length === 0) {
-      // Get default model
-      const defaultModel = await sql`
-        SELECT id FROM "AIModel"
-        WHERE "isDefault" = true
-        LIMIT 1
-      `
-
-      const defaultModelId = defaultModel.length > 0 ? defaultModel[0].id : null
-
       const newConfig = await sql`
         INSERT INTO "GlobalConfig" (
           id, 
@@ -37,16 +23,14 @@ export async function GET() {
           "allowedTopics", 
           "blockedTopics", 
           "maxTokens", 
-          temperature,
-          "defaultModelId"
+          temperature
         ) VALUES (
           'global',
           'You are a helpful assistant for websites. Answer questions based on the provided context.',
           'customer service, product information, general help',
           'illegal activities, harmful content, personal information',
           2000,
-          0.7,
-          ${defaultModelId}
+          0.7
         )
         RETURNING *
       `
@@ -78,20 +62,10 @@ export async function PUT(req: NextRequest) {
         "allowedTopics" = ${data.allowedTopics || null},
         "blockedTopics" = ${data.blockedTopics || null},
         "maxTokens" = ${data.maxTokens || null},
-        "temperature" = ${data.temperature || null},
-        "defaultModelId" = ${data.defaultModelId || null}
+        "temperature" = ${data.temperature || null}
       WHERE id = 'global'
       RETURNING *
     `
-
-    // Se um novo modelo padrão foi definido, atualizar o modelo
-    if (data.defaultModelId) {
-      await sql`
-        UPDATE "AIModel"
-        SET "isDefault" = CASE WHEN id = ${data.defaultModelId} THEN true ELSE false END
-        WHERE "isDefault" = true OR id = ${data.defaultModelId}
-      `
-    }
 
     return NextResponse.json(result[0])
   } catch (error) {

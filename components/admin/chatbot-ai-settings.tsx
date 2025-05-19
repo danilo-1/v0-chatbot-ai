@@ -1,154 +1,173 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
+import type React from "react"
+
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Slider } from "@/components/ui/slider"
+import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2, Save } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface ChatbotAISettingsProps {
-  chatbot: any
-  onUpdate: () => void
+  chatbot: {
+    id: string
+    name: string
+    temperature: number
+    maxTokens: number
+    customPrompt: string | null
+  }
 }
 
-export function ChatbotAISettings({ chatbot, onUpdate }: ChatbotAISettingsProps) {
-  const [customPrompt, setCustomPrompt] = useState(chatbot.customPrompt || "")
-  const [modelId, setModelId] = useState(chatbot.modelId || "default")
-  const [saving, setSaving] = useState(false)
-  const [models, setModels] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+export function ChatbotAISettings({ chatbot }: ChatbotAISettingsProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchModels()
-  }, [])
+  const [formData, setFormData] = useState({
+    id: chatbot.id,
+    temperature: chatbot.temperature,
+    maxTokens: chatbot.maxTokens,
+    customPrompt: chatbot.customPrompt || "",
+  })
 
-  const fetchModels = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch("/api/admin/ai-models")
-      if (!response.ok) {
-        throw new Error("Failed to fetch models")
-      }
-      const data = await response.json()
-      setModels(data)
-    } catch (error) {
-      console.error("Error fetching models:", error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch AI models",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSave = async () => {
+  const handleTemperatureChange = (value: number[]) => {
+    setFormData((prev) => ({ ...prev, temperature: value[0] }))
+  }
+
+  const handleMaxTokensChange = (value: number[]) => {
+    setFormData((prev) => ({ ...prev, maxTokens: value[0] }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    setError(null)
+
     try {
-      setSaving(true)
       const response = await fetch("/api/admin/chatbot-settings", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          id: chatbot.id,
-          customPrompt,
-          modelId,
-        }),
+        body: JSON.stringify(formData),
       })
 
       if (!response.ok) {
-        throw new Error("Failed to update chatbot settings")
+        const data = await response.json()
+        throw new Error(data.error || "Failed to update chatbot AI settings")
       }
 
       toast({
-        title: "Success",
-        description: "Chatbot AI settings updated successfully",
+        title: "Settings saved",
+        description: `AI settings for "${chatbot.name}" have been updated.`,
       })
-
-      onUpdate()
     } catch (error) {
-      console.error("Error updating chatbot settings:", error)
+      setError(error instanceof Error ? error.message : "Failed to update chatbot AI settings")
       toast({
         title: "Error",
-        description: "Failed to update chatbot settings",
+        description: "Failed to update chatbot AI settings. Please try again.",
         variant: "destructive",
       })
     } finally {
-      setSaving(false)
+      setIsSubmitting(false)
     }
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>{chatbot.name}</CardTitle>
-            <CardDescription>ID: {chatbot.id}</CardDescription>
-          </div>
-          <Badge variant={chatbot.isPublic ? "default" : "secondary"}>{chatbot.isPublic ? "Public" : "Private"}</Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="grid gap-2">
-            <label htmlFor={`model-${chatbot.id}`} className="text-sm font-medium">
-              AI Model
-            </label>
-            <Select value={modelId} onValueChange={setModelId} disabled={loading}>
-              <SelectTrigger id={`model-${chatbot.id}`}>
-                <SelectValue placeholder="Select a model" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default">Use Default Model</SelectItem>
-                {models
-                  .filter((model) => model.isActive)
-                  .map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
-                      {model.name} {model.isDefault && "(Default)"}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-            <p className="text-sm text-muted-foreground">The AI model to use for this chatbot</p>
-          </div>
+    <form onSubmit={handleSubmit}>
+      <div className="space-y-6">
+        {error && (
+          <Alert variant="destructive">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-          <div className="grid gap-2">
-            <label htmlFor={`prompt-${chatbot.id}`} className="text-sm font-medium">
-              Custom Prompt
-            </label>
-            <Textarea
-              id={`prompt-${chatbot.id}`}
-              value={customPrompt}
-              onChange={(e) => setCustomPrompt(e.target.value)}
-              placeholder={`You are a helpful AI assistant for ${chatbot.name}. Provide concise and accurate responses.`}
-              rows={5}
-            />
-            <p className="text-sm text-muted-foreground">Custom system prompt for this chatbot</p>
-          </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>AI Settings for {chatbot.name}</CardTitle>
+            <CardDescription>Customize how this chatbot responds.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="temperature">Temperature: {formData.temperature.toFixed(1)}</Label>
+                </div>
+                <Slider
+                  id="temperature"
+                  min={0}
+                  max={1}
+                  step={0.1}
+                  value={[formData.temperature]}
+                  onValueChange={handleTemperatureChange}
+                  className="mt-2"
+                />
+                <p className="text-sm text-muted-foreground mt-2">
+                  Lower values make responses more focused and deterministic. Higher values make responses more creative
+                  and varied.
+                </p>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="maxTokens">Max Tokens: {formData.maxTokens}</Label>
+                </div>
+                <Slider
+                  id="maxTokens"
+                  min={100}
+                  max={4000}
+                  step={100}
+                  value={[formData.maxTokens]}
+                  onValueChange={handleMaxTokensChange}
+                  className="mt-2"
+                />
+                <p className="text-sm text-muted-foreground mt-2">
+                  Maximum number of tokens (words) in the AI's response.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="customPrompt">Custom Prompt</Label>
+              <Textarea
+                id="customPrompt"
+                name="customPrompt"
+                value={formData.customPrompt}
+                onChange={handleChange}
+                rows={4}
+                placeholder="You are a helpful assistant for our company..."
+                className="font-mono text-sm"
+              />
+              <p className="text-sm text-muted-foreground">
+                Customize how this chatbot introduces itself and behaves. This is combined with the global prompt.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-end">
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save AI Settings"
+            )}
+          </Button>
         </div>
-      </CardContent>
-      <CardFooter>
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              Save Settings
-            </>
-          )}
-        </Button>
-      </CardFooter>
-    </Card>
+      </div>
+    </form>
   )
 }

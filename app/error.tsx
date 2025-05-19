@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle, RefreshCw } from "lucide-react"
+import { AlertTriangle } from "lucide-react"
 
 export default function Error({
   error,
@@ -19,31 +19,29 @@ export default function Error({
   }, [error])
 
   return (
-    <div className="container flex items-center justify-center min-h-screen">
+    <div className="flex min-h-screen items-center justify-center bg-muted/50 p-4">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Something went wrong</CardTitle>
-          <CardDescription>We encountered an error while processing your request</CardDescription>
+        <CardHeader className="space-y-1 text-center">
+          <div className="flex justify-center mb-2">
+            <AlertTriangle className="h-10 w-10 text-destructive" />
+          </div>
+          <CardTitle className="text-2xl">Something went wrong</CardTitle>
+          <CardDescription>An error occurred while loading this page</CardDescription>
         </CardHeader>
         <CardContent>
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription className="mt-2">
-              <div className="text-sm font-mono bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-auto max-h-32">
-                {error.message || "An unknown error occurred"}
-              </div>
-              {error.digest && <div className="mt-2 text-xs">Error ID: {error.digest}</div>}
-            </AlertDescription>
-          </Alert>
+          <div className="space-y-4 text-center">
+            <p className="text-muted-foreground">{error.message || "An unexpected error occurred"}</p>
+            {error.digest && (
+              <p className="text-sm text-muted-foreground">
+                Error ID: <code className="font-mono">{error.digest}</code>
+              </p>
+            )}
+          </div>
         </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={() => (window.location.href = "/")}>
-            Go Home
-          </Button>
-          <Button onClick={() => reset()} className="gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Try Again
+        <CardFooter className="flex justify-center gap-2">
+          <Button onClick={reset}>Try Again</Button>
+          <Button variant="outline" asChild>
+            <Link href="/">Go Home</Link>
           </Button>
         </CardFooter>
       </Card>
