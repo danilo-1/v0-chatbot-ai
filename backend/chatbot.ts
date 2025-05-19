@@ -6,6 +6,9 @@ import { sql } from "@/lib/db"
 export async function getChatbotById(id: string) {
   return prisma.chatbot.findUnique({
     where: { id },
+    include: {
+      model: true,
+    },
   })
 }
 
@@ -38,7 +41,14 @@ export async function createChatbot(data: {
   maxTokens?: number
   knowledgeBase?: string
   customPrompt?: string
+  modelId?: string
 }) {
+  // Se não for fornecido um modelId, use o modelo padrão
+  if (!data.modelId) {
+    const globalConfig = await getGlobalConfig()
+    data.modelId = globalConfig.defaultModelId
+  }
+
   return prisma.chatbot.create({
     data,
   })
@@ -55,6 +65,7 @@ export async function updateChatbot(
     maxTokens?: number
     knowledgeBase?: string
     customPrompt?: string
+    modelId?: string
   },
 ) {
   return prisma.chatbot.update({
@@ -83,14 +94,16 @@ export async function getGlobalConfig() {
           "allowedTopics", 
           "blockedTopics", 
           "maxTokens", 
-          temperature
+          temperature,
+          "defaultModelId"
         ) VALUES (
           'global',
           'You are a helpful assistant for websites. Answer questions based on the provided context.',
           'customer service, product information, general help',
           'illegal activities, harmful content, personal information',
           2000,
-          0.7
+          0.7,
+          'gpt-4o'
         )
         RETURNING *
       `
@@ -108,6 +121,7 @@ export async function getGlobalConfig() {
       blockedTopics: "illegal activities, harmful content, personal information",
       maxTokens: 2000,
       temperature: 0.7,
+      defaultModelId: "gpt-4o",
     }
   }
 }
@@ -118,6 +132,7 @@ export async function updateGlobalConfig(data: {
   blockedTopics?: string
   maxTokens?: number
   temperature?: number
+  defaultModelId?: string
 }) {
   try {
     // Use direct SQL query instead of Prisma
@@ -128,7 +143,8 @@ export async function updateGlobalConfig(data: {
         "allowedTopics" = ${data.allowedTopics || null},
         "blockedTopics" = ${data.blockedTopics || null},
         "maxTokens" = ${data.maxTokens || null},
-        "temperature" = ${data.temperature || null}
+        "temperature" = ${data.temperature || null},
+        "defaultModelId" = ${data.defaultModelId || null}
       WHERE id = 'global'
       RETURNING *
     `
@@ -136,6 +152,165 @@ export async function updateGlobalConfig(data: {
     return result[0]
   } catch (error) {
     console.error("Error updating global config:", error)
+    throw error
+  }
+}
+
+export async function getAIModels() {
+  try {
+    return await prisma.aIModel.findMany({
+      orderBy: {
+        name: "asc",
+      },
+    })
+  } catch (error) {
+    console.error("Error fetching AI models:", error)
+    return []
+  }
+}
+
+export async function getAIModelById(id: string) {
+  try {
+    return await prisma.aIModel.findUnique({
+      where: { id },
+    })
+  } catch (error) {
+    console.error(`Error fetching AI model with id ${id}:`, error)
+    return null
+  }
+}
+
+export async function getDefaultAIModel() {
+  try {
+    const model = await prisma.aIModel.findFirst({
+      where: { isDefault: true },
+    })
+
+    if (!model) {
+      // Fallback to gpt-4o if no default is set
+      return await prisma.aIModel.findUnique({
+        where: { id: "gpt-4o" },
+      })
+    }
+
+    return model
+  } catch (error) {
+    console.error("Error fetching default AI model:", error)
+    // Return a default model if there's an error
+    return {
+      id: "gpt-4o",
+      name: "GPT-4o",
+      provider: "openai",
+      modelId: "gpt-4o",
+      isActive: true,
+      isDefault: true,
+      maxTokens: 4096,
+    }
+  }
+}
+
+export async function createAIModel(data: {
+  id: string
+  name: string
+  provider: string
+  modelId: string
+  isActive?: boolean
+  isDefault?: boolean
+  maxTokens?: number
+}) {
+  try {
+    // Se este modelo for definido como padrão, remova o padrão de outros modelos
+    if (data.isDefault) {
+      await prisma.aIModel.updateMany({
+        where: { isDefault: true },
+        data: { isDefault: false },
+      })
+    }
+
+    return await prisma.aIModel.create({
+      data,
+    })
+  } catch (error) {
+    console.error("Error creating AI model:", error)
+    throw error
+  }
+}
+
+export async function updateAIModel(
+  id: string,
+  data: {
+    name?: string
+    provider?: string
+    modelId?: string
+    isActive?: boolean
+    isDefault?: boolean
+    maxTokens?: number
+  },
+) {
+  try {
+    // Se este modelo for definido como padrão, remova o padrão de outros modelos
+    if (data.isDefault) {
+      await prisma.aIModel.updateMany({
+        where: {
+          isDefault: true,
+          id: { not: id },
+        },
+        data: { isDefault: false },
+      })
+    }
+
+    return await prisma.aIModel.update({
+      where: { id },
+      data,
+    })
+  } catch (error) {
+    console.error(`Error updating AI model with id ${id}:`, error)
+    throw error
+  }
+}
+
+export async function deleteAIModel(id: string) {
+  try {
+    // Verifique se o modelo está sendo usado por algum chatbot
+    const chatbotsUsingModel = await prisma.chatbot.count({
+      where: { modelId: id },
+    })
+
+    if (chatbotsUsingModel > 0) {
+      throw new Error(`Cannot delete model: it is being used by ${chatbotsUsingModel} chatbot(s)`)
+    }
+
+    // Verifique se o modelo é o padrão na configuração global
+    const globalConfig = await getGlobalConfig()
+    if (globalConfig.defaultModelId === id) {
+      throw new Error("Cannot delete model: it is set as the default model in global settings")
+    }
+
+    // Verifique se é o único modelo padrão
+    if ((await prisma.aIModel.count({ where: { isDefault: true, id } })) > 0) {
+      const otherModelsCount = await prisma.aIModel.count({
+        where: { id: { not: id } },
+      })
+
+      if (otherModelsCount === 0) {
+        throw new Error("Cannot delete model: it is the only model in the system")
+      }
+
+      // Se for o modelo padrão e houver outros modelos, defina outro como padrão
+      const anotherModel = await prisma.aIModel.findFirst({
+        where: { id: { not: id } },
+      })
+
+      if (anotherModel) {
+        await updateAIModel(anotherModel.id, { isDefault: true })
+      }
+    }
+
+    return await prisma.aIModel.delete({
+      where: { id },
+    })
+  } catch (error) {
+    console.error(`Error deleting AI model with id ${id}:`, error)
     throw error
   }
 }
@@ -148,16 +323,39 @@ export async function generateChatbotResponse(chatbotId: string, messages: { rol
     throw new Error("Chatbot not found")
   }
 
+  // Determine which model to use
+  let modelId = "gpt-4o" // Fallback default
+
+  if (chatbot.modelId) {
+    // Use chatbot-specific model if set
+    modelId = chatbot.modelId
+  } else if (globalConfig.defaultModelId) {
+    // Otherwise use global default model
+    modelId = globalConfig.defaultModelId
+  }
+
+  // Get the model details
+  const model = await getAIModelById(modelId)
+
+  if (!model || !model.isActive) {
+    // Fallback to gpt-4o if model not found or not active
+    modelId = "gpt-4o"
+  }
+
   // Combine global and chatbot-specific configurations
   const systemPrompt = `${globalConfig.globalPrompt}
 
-${chatbot.customPrompt}
+${chatbot.customPrompt || ""}
 
-Knowledge Base:
-${chatbot.knowledgeBase}
+${
+  chatbot.knowledgeBase
+    ? `Knowledge Base:
+${chatbot.knowledgeBase}`
+    : ""
+}
 
-Allowed Topics: ${globalConfig.allowedTopics}
-Blocked Topics: ${globalConfig.blockedTopics}
+Allowed Topics: ${globalConfig.allowedTopics || ""}
+Blocked Topics: ${globalConfig.blockedTopics || ""}
 
 You are a chatbot for ${chatbot.name}. Answer questions based on the provided knowledge base.
 If you don't know the answer, say so politely.`
@@ -165,12 +363,12 @@ If you don't know the answer, say so politely.`
   // Create a new array with the system message at the beginning
   const messagesWithSystem = [{ role: "system", content: systemPrompt }, ...messages]
 
-  // Generate response using OpenAI
+  // Generate response using the selected model
   const result = streamText({
-    model: openai("gpt-4o"),
+    model: openai(modelId),
     messages: messagesWithSystem,
-    temperature: chatbot.temperature,
-    maxTokens: chatbot.maxTokens,
+    temperature: chatbot.temperature || globalConfig.temperature || 0.7,
+    maxTokens: chatbot.maxTokens || globalConfig.maxTokens || 2000,
   })
 
   return result

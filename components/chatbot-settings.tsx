@@ -1,174 +1,110 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
-import { Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Loader2 } from "lucide-react"
+import { DeleteChatbotButton } from "./delete-chatbot-button"
 
 interface ChatbotSettingsProps {
-  chatbot: {
-    id: string
-    name: string
-    description: string | null
-    isPublic: boolean
-    knowledgeBase: string | null
-  }
+  chatbot: any
+  isNew?: boolean
 }
 
-export function ChatbotSettings({ chatbot }: ChatbotSettingsProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+export function ChatbotSettings({ chatbot, isNew = false }: ChatbotSettingsProps) {
   const router = useRouter()
   const { toast } = useToast()
+  const [name, setName] = useState(chatbot?.name || "")
+  const [isPublic, setIsPublic] = useState(chatbot?.isPublic || false)
+  const [saving, setSaving] = useState(false)
 
-  const [formData, setFormData] = useState({
-    name: chatbot.name,
-    description: chatbot.description || "",
-    isPublic: chatbot.isPublic,
-    knowledgeBase: chatbot.knowledgeBase || "",
-  })
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleSwitchChange = (checked: boolean) => {
-    setFormData((prev) => ({ ...prev, isPublic: checked }))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setError(null)
+  const handleSave = async () => {
+    if (!name.trim()) {
+      toast({
+        title: "Error",
+        description: "Chatbot name is required",
+        variant: "destructive",
+      })
+      return
+    }
 
     try {
-      console.log("Submitting chatbot update:", formData)
+      setSaving(true)
+      const url = isNew ? "/api/chatbots" : `/api/chatbots/${chatbot.id}`
+      const method = isNew ? "POST" : "PUT"
 
-      const response = await fetch(`/api/chatbots/${chatbot.id}`, {
-        method: "PUT",
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name,
+          isPublic,
+        }),
       })
 
-      console.log("Response status:", response.status)
+      if (!response.ok) {
+        throw new Error("Failed to save chatbot")
+      }
 
       const data = await response.json()
 
-      if (!response.ok) {
-        console.error("API error:", data)
-        throw new Error(data.details || data.error || "Failed to update chatbot")
-      }
-
-      console.log("Updated chatbot:", data)
-
       toast({
-        title: "Settings saved",
-        description: "Your chatbot settings have been updated.",
+        title: "Success",
+        description: isNew ? "Chatbot created successfully" : "Chatbot updated successfully",
       })
 
-      // Force a refresh of the router cache
-      router.refresh()
+      if (isNew) {
+        router.push(`/dashboard/chatbots/${data.id}/edit`)
+      } else {
+        router.refresh()
+      }
     } catch (error) {
-      console.error("Error updating chatbot:", error)
-      setError(error instanceof Error ? error.message : "Failed to update chatbot. Please try again.")
+      console.error("Error saving chatbot:", error)
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update chatbot. Please try again.",
+        description: "Failed to save chatbot",
         variant: "destructive",
       })
     } finally {
-      setIsSubmitting(false)
+      setSaving(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="space-y-6">
-        {error && (
-          <Alert variant="destructive">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-            <CardDescription>Update your chatbot's basic information.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" name="name" value={formData.name} onChange={handleChange} required />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={3}
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch id="isPublic" checked={formData.isPublic} onCheckedChange={handleSwitchChange} />
-              <Label htmlFor="isPublic">Make this chatbot public</Label>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Knowledge Base</CardTitle>
-            <CardDescription>Update the information your chatbot uses to answer questions.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Label htmlFor="knowledgeBase">Knowledge Base</Label>
-              <Textarea
-                id="knowledgeBase"
-                name="knowledgeBase"
-                value={formData.knowledgeBase}
-                onChange={handleChange}
-                rows={10}
-                className="font-mono text-sm"
-              />
-              <p className="text-sm text-muted-foreground">
-                Add all the information your chatbot needs to answer questions about your business. Include FAQs,
-                product details, policies, and any other relevant information.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save Changes"
-            )}
-          </Button>
+    <Card>
+      <CardHeader>
+        <CardTitle>{isNew ? "Create New Chatbot" : "Chatbot Settings"}</CardTitle>
+        <CardDescription>{isNew ? "Configure your new chatbot" : "Update your chatbot settings"}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="name">Name</Label>
+          <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="My Awesome Chatbot" />
+          <p className="text-sm text-muted-foreground">The name of your chatbot</p>
         </div>
-      </div>
-    </form>
+
+        <div className="flex items-center justify-between space-x-2">
+          <div className="space-y-0.5">
+            <Label htmlFor="public">Public</Label>
+            <p className="text-sm text-muted-foreground">Make this chatbot publicly accessible</p>
+          </div>
+          <Switch id="public" checked={isPublic} onCheckedChange={setIsPublic} />
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        {!isNew && <DeleteChatbotButton id={chatbot.id} />}
+        <Button onClick={handleSave} disabled={saving}>
+          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isNew ? "Create Chatbot" : "Save Changes"}
+        </Button>
+      </CardFooter>
+    </Card>
   )
 }
