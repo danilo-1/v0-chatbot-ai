@@ -15,8 +15,8 @@ import { Input } from "@/components/ui/input"
 import { Loader2, Search, Bot } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { ChatbotAISettings } from "@/components/admin/chatbot-ai-settings"
-// Adicionar o import do OpenAIModelsManager
-import { OpenAIModelsManager } from "@/components/admin/openai-models-manager"
+// Update the import for AIModelsManager
+import { AIModelsManager } from "@/components/admin/openai-models-manager"
 
 export default function GlobalSettingsPage() {
   const { data: session } = useSession()
@@ -311,7 +311,7 @@ export default function GlobalSettingsPage() {
 
         {/* Adicionar o novo TabsContent para os modelos da OpenAI após o TabsContent de global */}
         <TabsContent value="models" className="space-y-6 mt-6">
-          <OpenAIModelsManager />
+          <AIModelsManager />
         </TabsContent>
 
         <TabsContent value="chatbots" className="space-y-6 mt-6">

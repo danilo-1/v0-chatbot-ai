@@ -12,16 +12,18 @@ import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
-// Adicionar interface para o modelo OpenAI
-interface OpenAIModel {
+// Update the interface for AIModel
+interface AIModel {
   id: string
   name: string
-  modelId: string
-  isDefault: boolean
-  maxTokens: number
+  modelid: string
+  provider: string
+  isdefault: boolean
+  isactive: boolean
+  maxtokens: number
 }
 
-// Modificar a interface ChatbotAISettingsProps para incluir modelId
+// Update the ChatbotAISettingsProps interface
 interface ChatbotAISettingsProps {
   chatbot: {
     id: string
@@ -39,7 +41,7 @@ export function ChatbotAISettings({ chatbot }: ChatbotAISettingsProps) {
   const { toast } = useToast()
 
   // Adicionar estado para os modelos disponíveis
-  const [models, setModels] = useState<OpenAIModel[]>([])
+  const [models, setModels] = useState<AIModel[]>([])
   const [isLoadingModels, setIsLoadingModels] = useState(true)
 
   // Adicionar modelId ao formData
@@ -51,19 +53,19 @@ export function ChatbotAISettings({ chatbot }: ChatbotAISettingsProps) {
     modelId: chatbot.modelId || "",
   })
 
-  // Adicionar useEffect para carregar os modelos
+  // In the useEffect for fetching models, update the API endpoint
   useEffect(() => {
     const fetchModels = async () => {
       setIsLoadingModels(true)
       try {
-        const response = await fetch("/api/admin/openai-models")
+        const response = await fetch("/api/admin/ai-models")
         if (!response.ok) {
           throw new Error("Failed to fetch models")
         }
         const data = await response.json()
-        setModels(data.filter((model: OpenAIModel) => model.isActive))
+        setModels(data.filter((model: AIModel) => model.isactive))
       } catch (error) {
-        console.error("Error fetching OpenAI models:", error)
+        console.error("Error fetching AI models:", error)
       } finally {
         setIsLoadingModels(false)
       }
@@ -145,6 +147,7 @@ export function ChatbotAISettings({ chatbot }: ChatbotAISettingsProps) {
                   <span className="text-sm text-muted-foreground">Loading models...</span>
                 </div>
               ) : (
+                // In the select element for models, update the property names
                 <select
                   id="modelId"
                   name="modelId"
@@ -155,7 +158,7 @@ export function ChatbotAISettings({ chatbot }: ChatbotAISettingsProps) {
                   <option value="">Use Default Model</option>
                   {models.map((model) => (
                     <option key={model.id} value={model.id}>
-                      {model.name} {model.isDefault ? "(Default)" : ""}
+                      {model.name} {model.isdefault ? "(Default)" : ""} - {model.provider}
                     </option>
                   ))}
                 </select>

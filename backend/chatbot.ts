@@ -140,7 +140,7 @@ export async function updateGlobalConfig(data: {
   }
 }
 
-// Modificar a função generateChatbotResponse para usar o modelo selecionado
+// In the generateChatbotResponse function, update the code to use the AIModel table
 export async function generateChatbotResponse(chatbotId: string, messages: { role: string; content: string }[]) {
   // Get chatbot and global config
   const [chatbot, globalConfig] = await Promise.all([getChatbotById(chatbotId), getGlobalConfig()])
@@ -149,18 +149,18 @@ export async function generateChatbotResponse(chatbotId: string, messages: { rol
     throw new Error("Chatbot not found")
   }
 
-  // Get the OpenAI model to use
-  let openAIModel = null
+  // Get the AI model to use
+  let aiModel = null
 
   if (chatbot.modelId) {
     // If chatbot has a specific model assigned, use that
     try {
       const modelResult = await sql`
-        SELECT * FROM "OpenAIModel"
-        WHERE id = ${chatbot.modelId} AND "isActive" = true
+        SELECT * FROM "AIModel"
+        WHERE id = ${chatbot.modelId} AND "isactive" = true
       `
       if (modelResult.length > 0) {
-        openAIModel = modelResult[0]
+        aiModel = modelResult[0]
       }
     } catch (error) {
       console.error("Error fetching chatbot model:", error)
@@ -168,14 +168,14 @@ export async function generateChatbotResponse(chatbotId: string, messages: { rol
   }
 
   // If no specific model or the model is inactive, use the default model
-  if (!openAIModel) {
+  if (!aiModel) {
     try {
       const defaultModelResult = await sql`
-        SELECT * FROM "OpenAIModel"
-        WHERE "isDefault" = true AND "isActive" = true
+        SELECT * FROM "AIModel"
+        WHERE "isdefault" = true AND "isactive" = true
       `
       if (defaultModelResult.length > 0) {
-        openAIModel = defaultModelResult[0]
+        aiModel = defaultModelResult[0]
       }
     } catch (error) {
       console.error("Error fetching default model:", error)
@@ -183,8 +183,8 @@ export async function generateChatbotResponse(chatbotId: string, messages: { rol
   }
 
   // Fallback to gpt-4o if no model is found
-  const modelId = openAIModel?.modelId || "gpt-4o"
-  const maxTokens = openAIModel?.maxTokens || chatbot.maxTokens || 2000
+  const modelId = aiModel?.modelid || "gpt-4o"
+  const maxTokens = aiModel?.maxtokens || chatbot.maxTokens || 2000
 
   // Combine global and chatbot-specific configurations
   const systemPrompt = `${globalConfig.globalPrompt}
@@ -203,7 +203,7 @@ If you don't know the answer, say so politely.`
   // Create a new array with the system message at the beginning
   const messagesWithSystem = [{ role: "system", content: systemPrompt }, ...messages]
 
-  // Generate response using OpenAI with the selected model
+  // Generate response using the selected model
   const result = streamText({
     model: openai(modelId),
     messages: messagesWithSystem,

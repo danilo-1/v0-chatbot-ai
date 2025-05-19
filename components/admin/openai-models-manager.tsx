@@ -31,22 +31,25 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-interface OpenAIModel {
+// Change the interface to match the AIModel table structure
+interface AIModel {
   id: string
   name: string
-  modelId: string
-  isDefault: boolean
-  isActive: boolean
-  maxTokens: number
-  createdAt: string
-  updatedAt: string
+  modelid: string
+  provider: string
+  isdefault: boolean
+  isactive: boolean
+  maxtokens: number
+  createdat: string
+  updatedat: string
 }
 
-export function OpenAIModelsManager() {
-  const [models, setModels] = useState<OpenAIModel[]>([])
+// Rename the component to AIModelsManager
+export function AIModelsManager() {
+  const [models, setModels] = useState<AIModel[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [editingModel, setEditingModel] = useState<OpenAIModel | null>(null)
+  const [editingModel, setEditingModel] = useState<AIModel | null>(null)
   const [deleteModelId, setDeleteModelId] = useState<string | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [alertDialogOpen, setAlertDialogOpen] = useState(false)
@@ -54,10 +57,11 @@ export function OpenAIModelsManager() {
 
   const [formData, setFormData] = useState({
     name: "",
-    modelId: "",
-    isDefault: false,
-    isActive: true,
-    maxTokens: 4000,
+    modelid: "",
+    provider: "openai",
+    isdefault: false,
+    isactive: true,
+    maxtokens: 4000,
   })
 
   useEffect(() => {
@@ -67,7 +71,7 @@ export function OpenAIModelsManager() {
   const fetchModels = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch("/api/admin/openai-models")
+      const response = await fetch("/api/admin/ai-models")
       if (!response.ok) {
         throw new Error("Failed to fetch models")
       }
@@ -76,7 +80,7 @@ export function OpenAIModelsManager() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to fetch OpenAI models. Please try again.",
+        description: "Failed to fetch AI models. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -84,7 +88,7 @@ export function OpenAIModelsManager() {
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
     setFormData((prev) => ({
       ...prev,
@@ -101,7 +105,7 @@ export function OpenAIModelsManager() {
     setIsSubmitting(true)
 
     try {
-      const url = editingModel ? `/api/admin/openai-models/${editingModel.id}` : "/api/admin/openai-models"
+      const url = editingModel ? `/api/admin/ai-models/${editingModel.id}` : "/api/admin/ai-models"
       const method = editingModel ? "PUT" : "POST"
 
       const response = await fetch(url, {
@@ -119,8 +123,8 @@ export function OpenAIModelsManager() {
       toast({
         title: editingModel ? "Model updated" : "Model created",
         description: editingModel
-          ? "The OpenAI model has been updated successfully."
-          : "A new OpenAI model has been added successfully.",
+          ? "The AI model has been updated successfully."
+          : "A new AI model has been added successfully.",
       })
 
       // Reset form and refresh models
@@ -130,7 +134,7 @@ export function OpenAIModelsManager() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to save OpenAI model. Please try again.",
+        description: "Failed to save AI model. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -138,14 +142,15 @@ export function OpenAIModelsManager() {
     }
   }
 
-  const handleEdit = (model: OpenAIModel) => {
+  const handleEdit = (model: AIModel) => {
     setEditingModel(model)
     setFormData({
       name: model.name,
-      modelId: model.modelId,
-      isDefault: model.isDefault,
-      isActive: model.isActive,
-      maxTokens: model.maxTokens,
+      modelid: model.modelid,
+      provider: model.provider,
+      isdefault: model.isdefault,
+      isactive: model.isactive,
+      maxtokens: model.maxtokens,
     })
     setDialogOpen(true)
   }
@@ -154,7 +159,7 @@ export function OpenAIModelsManager() {
     if (!deleteModelId) return
 
     try {
-      const response = await fetch(`/api/admin/openai-models/${deleteModelId}`, {
+      const response = await fetch(`/api/admin/ai-models/${deleteModelId}`, {
         method: "DELETE",
       })
 
@@ -164,7 +169,7 @@ export function OpenAIModelsManager() {
 
       toast({
         title: "Model deleted",
-        description: "The OpenAI model has been deleted successfully.",
+        description: "The AI model has been deleted successfully.",
       })
 
       // Refresh models
@@ -172,7 +177,7 @@ export function OpenAIModelsManager() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete OpenAI model. Please try again.",
+        description: "Failed to delete AI model. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -189,22 +194,23 @@ export function OpenAIModelsManager() {
   const resetForm = () => {
     setFormData({
       name: "",
-      modelId: "",
-      isDefault: false,
-      isActive: true,
-      maxTokens: 4000,
+      modelid: "",
+      provider: "openai",
+      isdefault: false,
+      isactive: true,
+      maxtokens: 4000,
     })
     setEditingModel(null)
   }
 
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
     try {
-      const response = await fetch(`/api/admin/openai-models/${id}`, {
+      const response = await fetch(`/api/admin/ai-models/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ isActive: !currentStatus }),
+        body: JSON.stringify({ isactive: !currentStatus }),
       })
 
       if (!response.ok) {
@@ -229,7 +235,7 @@ export function OpenAIModelsManager() {
 
   const handleSetDefault = async (id: string) => {
     try {
-      const response = await fetch(`/api/admin/openai-models/${id}/set-default`, {
+      const response = await fetch(`/api/admin/ai-models/${id}/set-default`, {
         method: "POST",
       })
 
@@ -239,7 +245,7 @@ export function OpenAIModelsManager() {
 
       toast({
         title: "Default model updated",
-        description: "The default OpenAI model has been updated successfully.",
+        description: "The default AI model has been updated successfully.",
       })
 
       // Refresh models
@@ -253,103 +259,158 @@ export function OpenAIModelsManager() {
     }
   }
 
+  // Add a function to initialize default models
+  const initializeDefaultModels = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch("/api/admin/init-ai-models", {
+        method: "POST",
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to initialize default models")
+      }
+
+      const data = await response.json()
+
+      toast({
+        title: "Default models initialized",
+        description: data.message,
+      })
+
+      // Refresh models
+      fetchModels()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to initialize default models. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>OpenAI Models</CardTitle>
-          <CardDescription>Manage the available OpenAI models for chatbots.</CardDescription>
+          <CardTitle>AI Models</CardTitle>
+          <CardDescription>Manage the available AI models for chatbots.</CardDescription>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Model
+        <div className="flex gap-2">
+          {models.length === 0 && (
+            <Button onClick={initializeDefaultModels} disabled={isLoading}>
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Initialize Default Models
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingModel ? "Edit OpenAI Model" : "Add OpenAI Model"}</DialogTitle>
-              <DialogDescription>
-                {editingModel
-                  ? "Update the details of this OpenAI model."
-                  : "Add a new OpenAI model to use with chatbots."}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit}>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Display Name</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="e.g., GPT-4o"
-                    required
-                  />
+          )}
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Model
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingModel ? "Edit AI Model" : "Add AI Model"}</DialogTitle>
+                <DialogDescription>
+                  {editingModel ? "Update the details of this AI model." : "Add a new AI model to use with chatbots."}
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="name">Display Name</Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder="e.g., GPT-4o"
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="modelid">Model ID</Label>
+                    <Input
+                      id="modelid"
+                      name="modelid"
+                      value={formData.modelid}
+                      onChange={handleChange}
+                      placeholder="e.g., gpt-4o"
+                      required
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      The exact model ID used by the API (e.g., gpt-4o, gpt-3.5-turbo)
+                    </p>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="provider">Provider</Label>
+                    <select
+                      id="provider"
+                      name="provider"
+                      value={formData.provider}
+                      onChange={handleChange}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      required
+                    >
+                      <option value="openai">OpenAI</option>
+                      <option value="anthropic">Anthropic</option>
+                      <option value="google">Google</option>
+                      <option value="mistral">Mistral</option>
+                      <option value="groq">Groq</option>
+                    </select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="maxtokens">Max Tokens</Label>
+                    <Input
+                      id="maxtokens"
+                      name="maxtokens"
+                      type="number"
+                      value={formData.maxtokens}
+                      onChange={handleChange}
+                      min={1}
+                      required
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="isactive"
+                      checked={formData.isactive}
+                      onCheckedChange={(checked) => handleSwitchChange("isactive", checked)}
+                    />
+                    <Label htmlFor="isactive">Active</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="isdefault"
+                      checked={formData.isdefault}
+                      onCheckedChange={(checked) => handleSwitchChange("isdefault", checked)}
+                    />
+                    <Label htmlFor="isdefault">Default Model</Label>
+                  </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="modelId">Model ID</Label>
-                  <Input
-                    id="modelId"
-                    name="modelId"
-                    value={formData.modelId}
-                    onChange={handleChange}
-                    placeholder="e.g., gpt-4o"
-                    required
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    The exact model ID used by the OpenAI API (e.g., gpt-4o, gpt-3.5-turbo)
-                  </p>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="maxTokens">Max Tokens</Label>
-                  <Input
-                    id="maxTokens"
-                    name="maxTokens"
-                    type="number"
-                    value={formData.maxTokens}
-                    onChange={handleChange}
-                    min={1}
-                    required
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="isActive"
-                    checked={formData.isActive}
-                    onCheckedChange={(checked) => handleSwitchChange("isActive", checked)}
-                  />
-                  <Label htmlFor="isActive">Active</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="isDefault"
-                    checked={formData.isDefault}
-                    onCheckedChange={(checked) => handleSwitchChange("isDefault", checked)}
-                  />
-                  <Label htmlFor="isDefault">Default Model</Label>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save Model"
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Model"
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -358,7 +419,7 @@ export function OpenAIModelsManager() {
           </div>
         ) : models.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-muted-foreground">No OpenAI models configured yet. Add your first model.</p>
+            <p className="text-muted-foreground">No AI models configured yet. Add your first model.</p>
           </div>
         ) : (
           <div className="rounded-md border">
@@ -367,6 +428,7 @@ export function OpenAIModelsManager() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Model ID</TableHead>
+                  <TableHead>Provider</TableHead>
                   <TableHead>Max Tokens</TableHead>
                   <TableHead>Default</TableHead>
                   <TableHead>Status</TableHead>
@@ -377,10 +439,11 @@ export function OpenAIModelsManager() {
                 {models.map((model) => (
                   <TableRow key={model.id}>
                     <TableCell className="font-medium">{model.name}</TableCell>
-                    <TableCell className="font-mono text-sm">{model.modelId}</TableCell>
-                    <TableCell>{model.maxTokens.toLocaleString()}</TableCell>
+                    <TableCell className="font-mono text-sm">{model.modelid}</TableCell>
+                    <TableCell>{model.provider}</TableCell>
+                    <TableCell>{model.maxtokens.toLocaleString()}</TableCell>
                     <TableCell>
-                      {model.isDefault ? (
+                      {model.isdefault ? (
                         <Check className="h-4 w-4 text-green-500" />
                       ) : (
                         <Button
@@ -395,9 +458,9 @@ export function OpenAIModelsManager() {
                     </TableCell>
                     <TableCell>
                       <Switch
-                        checked={model.isActive}
-                        onCheckedChange={() => handleToggleActive(model.id, model.isActive)}
-                        aria-label={model.isActive ? "Active" : "Inactive"}
+                        checked={model.isactive}
+                        onCheckedChange={() => handleToggleActive(model.id, model.isactive)}
+                        aria-label={model.isactive ? "Active" : "Inactive"}
                       />
                     </TableCell>
                     <TableCell className="text-right">
@@ -425,7 +488,7 @@ export function OpenAIModelsManager() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this OpenAI model. This action cannot be undone.
+              This will permanently delete this AI model. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
