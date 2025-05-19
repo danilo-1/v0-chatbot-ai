@@ -7,6 +7,7 @@ import Image from "next/image"
 import { DeleteChatbotButton } from "@/components/delete-chatbot-button"
 import { sql } from "@/lib/db"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { toExtensibleArray } from "@/lib/utils"
 
 export const dynamic = "force-dynamic" // Disable caching for this page
 
@@ -24,34 +25,24 @@ export default async function ChatbotsPage() {
 
   try {
     if (userId) {
+      // Usar uma consulta SQL mais simples para evitar problemas
       const result = await sql`
-        SELECT c.*, u.name as "userName"
+        SELECT 
+          c.id, 
+          c.name, 
+          c.description, 
+          c."imageUrl", 
+          c."isPublic", 
+          c."userId", 
+          u.name as "userName"
         FROM "Chatbot" c
         JOIN "User" u ON c."userId" = u.id
         WHERE c."userId" = ${userId}
         ORDER BY c."createdAt" DESC
       `
 
-      // Convert the result to a plain JavaScript array of objects
-      chatbots = result.map((row) => {
-        // Create a new object with all properties from the row
-        return {
-          id: row.id,
-          name: row.name,
-          description: row.description,
-          imageUrl: row.imageUrl,
-          isPublic: row.isPublic,
-          userId: row.userId,
-          userName: row.userName,
-          createdAt: row.createdAt,
-          updatedAt: row.updatedAt,
-          temperature: row.temperature,
-          maxTokens: row.maxTokens,
-          knowledgeBase: row.knowledgeBase,
-          customPrompt: row.customPrompt,
-          modelId: row.modelId,
-        }
-      })
+      // Converter para objetos extensíveis
+      chatbots = toExtensibleArray(result)
 
       console.log(`Found ${chatbots.length} chatbots for user ${userId}`)
     }

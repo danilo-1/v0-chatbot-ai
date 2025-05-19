@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { sql } from "@/lib/db"
+import { toExtensibleArray } from "@/lib/utils"
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -10,7 +11,19 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     // Get chatbot with direct SQL
     const result = await sql`
-      SELECT c.*, u.name as "userName"
+      SELECT 
+        c.id, 
+        c.name, 
+        c.description, 
+        c."imageUrl", 
+        c."isPublic", 
+        c."userId", 
+        c."temperature", 
+        c."maxTokens", 
+        c."knowledgeBase", 
+        c."customPrompt", 
+        c."modelId",
+        u.name as "userName"
       FROM "Chatbot" c
       JOIN "User" u ON c."userId" = u.id
       WHERE c.id = ${id}
@@ -21,23 +34,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: "Chatbot not found" }, { status: 404 })
     }
 
-    // Convert to a plain JavaScript object
-    const chatbot = {
-      id: result[0].id,
-      name: result[0].name,
-      description: result[0].description,
-      imageUrl: result[0].imageUrl,
-      isPublic: result[0].isPublic,
-      userId: result[0].userId,
-      userName: result[0].userName,
-      temperature: result[0].temperature,
-      maxTokens: result[0].maxTokens,
-      knowledgeBase: result[0].knowledgeBase,
-      customPrompt: result[0].customPrompt,
-      modelId: result[0].modelId,
-      createdAt: result[0].createdAt,
-      updatedAt: result[0].updatedAt,
-    }
+    // Converter para objeto extensível
+    const chatbot = toExtensibleArray(result)[0]
 
     // Check if user is authorized to view this chatbot
     const session = await getServerSession(authOptions)
@@ -107,22 +105,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       throw new Error("No result returned from database")
     }
 
-    // Convert to a plain JavaScript object
-    const chatbot = {
-      id: result[0].id,
-      name: result[0].name,
-      description: result[0].description,
-      imageUrl: result[0].imageUrl,
-      isPublic: result[0].isPublic,
-      userId: result[0].userId,
-      temperature: result[0].temperature,
-      maxTokens: result[0].maxTokens,
-      knowledgeBase: result[0].knowledgeBase,
-      customPrompt: result[0].customPrompt,
-      modelId: result[0].modelId,
-      createdAt: result[0].createdAt,
-      updatedAt: result[0].updatedAt,
-    }
+    // Converter para objeto extensível
+    const chatbot = toExtensibleArray(result)[0]
 
     console.log(`Successfully updated chatbot ${id}`)
     return NextResponse.json(chatbot)
