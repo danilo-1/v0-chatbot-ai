@@ -1,68 +1,55 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { put } from "@vercel/blob"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
-import { writeFile, mkdir } from "fs/promises"
-import { join } from "path"
-import { existsSync } from "fs"
-import { v4 as uuidv4 } from "uuid"
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     // Verificar autenticação
     const session = await getServerSession(authOptions)
     if (!session?.user) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     // Processar o upload
-    const formData = await req.formData()
-    const file = formData.get("file") as File | null
+    const formData = await request.formData()
+    const file = formData.get("file") as File
 
     if (!file) {
-      return NextResponse.json({ error: "Nenhum arquivo enviado" }, { status: 400 })
+      return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    // Validar tipo de arquivo
-    const validTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"]
-    if (!validTypes.includes(file.type)) {
-      return NextResponse.json({ error: "Formato de arquivo inválido" }, { status: 400 })
+    // Verificar se é uma imagem
+    if (!file.type.startsWith("image/")) {
+      return NextResponse.json({ error: "File must be an image" }, { status: 400 })
     }
 
-    // Validar tamanho (max 5MB)
+    // Verificar tamanho (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ error: "Arquivo muito grande (máximo 5MB)" }, { status: 400 })
+      return NextResponse.json({ error: "File size must be less than 5MB" }, { status: 400 })
     }
 
     // Gerar nome de arquivo único
     const fileExtension = file.name.split(".").pop()
-    const fileName = `${uuidv4()}.${fileExtension}`
+    const fileName = `chatbot-${Date.now()}.${fileExtension}`
 
-    // Criar diretório de uploads se não existir
-    const publicDir = join(process.cwd(), "public")
-    const uploadsDir = join(publicDir, "uploads")
+    // Fazer upload para o Vercel Blob Storage
+    const blob = await put(fileName, file, {
+      access: "public",
+    })
 
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true })
-    }
-
-    try {
-      // Converter o arquivo para um Buffer
-      const bytes = await file.arrayBuffer()
-      const buffer = Buffer.from(bytes)
-
-      // Salvar o arquivo
-      const filePath = join(uploadsDir, fileName)
-      await writeFile(filePath, buffer)
-
-      // Retornar a URL do arquivo
-      const fileUrl = `/uploads/${fileName}`
-      return NextResponse.json({ url: fileUrl })
-    } catch (error) {
-      console.error("Erro ao salvar arquivo:", error)
-      return NextResponse.json({ error: "Erro ao processar o upload" }, { status: 500 })
-    }
+    return NextResponse.json({ url: blob.url })
   } catch (error) {
-    console.error("Erro no upload:", error)
-    return NextResponse.json({ error: "Erro interno do servidor" }, { status: 500 })
+    console.error("Error uploading file:", error)
+    return NextResponse.json(
+      { error: "Failed to upload file", details: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    )
   }
+}
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
 }

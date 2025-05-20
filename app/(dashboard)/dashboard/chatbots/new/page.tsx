@@ -188,12 +188,15 @@ export default function NewChatbotPage() {
             </div>
 
             {/* Adicionar o componente de upload de imagem */}
-            <ImageUpload
-              value={formData.imageUrl}
-              onChange={handleImageChange}
-              label="Chatbot Image"
-              disabled={isSubmitting}
-            />
+            <div className="space-y-2">
+              <ImageUpload
+                value={formData.imageUrl}
+                onChange={handleImageChange}
+                label="Chatbot Image"
+                disabled={isSubmitting}
+              />
+              <p className="text-sm text-muted-foreground">Upload an image or avatar for your chatbot.</p>
+            </div>
 
             <div className="flex items-center space-x-2">
               <Switch id="isPublic" checked={formData.isPublic} onCheckedChange={handleSwitchChange} />
