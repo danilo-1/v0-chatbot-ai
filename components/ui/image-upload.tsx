@@ -20,6 +20,7 @@ interface ImageUploadProps {
 export function ImageUpload({ value, onChange, disabled, label = "Imagem", className = "" }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,6 +74,60 @@ export function ImageUpload({ value, onChange, disabled, label = "Imagem", class
     onChange("")
   }
 
+  // Adicionar handler para abrir o seletor de arquivos ao clicar
+  const handleClick = () => {
+    if (!disabled && !isUploading && fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+
+  // Handlers para drag and drop
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!disabled && !isUploading) {
+      setIsDragging(true)
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!disabled && !isUploading) {
+      e.dataTransfer.dropEffect = "copy"
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    if (disabled || isUploading) return
+
+    const file = e.dataTransfer.files?.[0]
+    if (!file) return
+
+    // Criar um evento de mudança de arquivo simulado
+    const fileInputEl = fileInputRef.current
+    if (fileInputEl) {
+      // Criar um novo objeto FileList com o arquivo arrastado
+      const dataTransfer = new DataTransfer()
+      dataTransfer.items.add(file)
+      fileInputEl.files = dataTransfer.files
+
+      // Disparar o evento de mudança
+      const event = new Event("change", { bubbles: true })
+      fileInputEl.dispatchEvent(event)
+    }
+  }
+
   return (
     <div className={className}>
       <Label htmlFor="image-upload">{label}</Label>
@@ -99,7 +154,16 @@ export function ImageUpload({ value, onChange, disabled, label = "Imagem", class
             />
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-12">
+          <div
+            className={`flex flex-col items-center justify-center rounded-md border ${
+              isDragging ? "border-primary bg-primary/10" : "border-dashed"
+            } p-12 cursor-pointer`}
+            onClick={handleClick}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          >
             <div className="flex flex-col items-center justify-center gap-2 text-center">
               <Upload className="h-8 w-8 text-muted-foreground" />
               <div className="text-sm font-medium">

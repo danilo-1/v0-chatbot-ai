@@ -1,8 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
-import { writeFile } from "fs/promises"
+import { writeFile, mkdir } from "fs/promises"
 import { join } from "path"
+import { existsSync } from "fs"
 import { v4 as uuidv4 } from "uuid"
 
 export async function POST(req: NextRequest) {
@@ -39,6 +40,10 @@ export async function POST(req: NextRequest) {
     // Criar diretório de uploads se não existir
     const publicDir = join(process.cwd(), "public")
     const uploadsDir = join(publicDir, "uploads")
+
+    if (!existsSync(uploadsDir)) {
+      await mkdir(uploadsDir, { recursive: true })
+    }
 
     try {
       // Converter o arquivo para um Buffer
