@@ -51,6 +51,7 @@ export function ChatbotSettings({ chatbot }: ChatbotSettingsProps) {
 
   // Adicionar handler para a imagem
   const handleImageChange = (url: string) => {
+    console.log("Image URL changed:", url)
     setFormData((prev) => ({ ...prev, imageUrl: url }))
   }
 

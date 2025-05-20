@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "latest",
+    "@ai-sdk/react": "latest",
     "@auth/core": "latest",
     "@hookform/resolvers": "^3.9.1",
     "@neondatabase/serverless": "latest",
@@ -64,14 +65,13 @@
     "react-day-picker": "8.10.1",
     "react-dom": "^19",
     "react-hook-form": "^7.54.1",
-    "react-markdown": "latest",
     "react-resizable-panels": "^2.1.7",
     "recharts": "2.15.0",
-    "remark-gfm": "latest",
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "util": "latest",
+    "uuid": "latest",
     "vaul": "^0.9.6",
     "zod": "^3.24.1"
   },

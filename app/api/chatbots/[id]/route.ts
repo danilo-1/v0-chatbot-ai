@@ -88,6 +88,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
           description = ${data.description || null},
           "isPublic" = ${data.isPublic || false},
           "knowledgeBase" = ${data.knowledgeBase || null},
+          "imageUrl" = ${data.imageUrl || null},
           "updatedAt" = NOW()
         WHERE id = ${params.id}
         RETURNING *
@@ -115,6 +116,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
           "maxTokens" = ${data.maxTokens || chatbot.maxTokens},
           "knowledgeBase" = ${data.knowledgeBase || null},
           "customPrompt" = ${data.customPrompt || chatbot.customPrompt},
+          "imageUrl" = ${data.imageUrl || null},
           "updatedAt" = NOW()
         WHERE id = ${params.id}
         RETURNING *
