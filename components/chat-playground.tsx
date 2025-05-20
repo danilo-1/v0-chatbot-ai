@@ -7,12 +7,15 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Bot, Send, User } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import Image from "next/image"
 
 interface ChatPlaygroundProps {
   chatbotId: string
+  chatbotName?: string
+  chatbotImage?: string
 }
 
-export function ChatPlayground({ chatbotId }: ChatPlaygroundProps) {
+export function ChatPlayground({ chatbotId, chatbotName, chatbotImage }: ChatPlaygroundProps) {
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: `/api/chatbots/${chatbotId}/chat`,
   })
@@ -30,10 +33,22 @@ export function ChatPlayground({ chatbotId }: ChatPlaygroundProps) {
         <div className="space-y-4">
           {messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center p-8">
-              <Bot className="h-12 w-12 text-muted-foreground mb-4" />
+              {chatbotImage ? (
+                <div className="relative h-16 w-16 overflow-hidden rounded-full mb-4">
+                  <Image
+                    src={chatbotImage || "/placeholder.svg"}
+                    alt={chatbotName || "Chatbot"}
+                    fill
+                    className="object-cover"
+                    sizes="64px"
+                  />
+                </div>
+              ) : (
+                <Bot className="h-12 w-12 text-muted-foreground mb-4" />
+              )}
               <h3 className="text-lg font-medium">Start a conversation</h3>
               <p className="text-sm text-muted-foreground mt-2 max-w-md">
-                Ask a question to start chatting with this AI assistant.
+                Ask a question to start chatting with {chatbotName || "this AI assistant"}.
               </p>
             </div>
           ) : (
@@ -45,7 +60,21 @@ export function ChatPlayground({ chatbotId }: ChatPlaygroundProps) {
                   }`}
                 >
                   <div className="mt-0.5">
-                    {message.role === "user" ? <User className="h-5 w-5" /> : <Bot className="h-5 w-5" />}
+                    {message.role === "user" ? (
+                      <User className="h-5 w-5" />
+                    ) : chatbotImage ? (
+                      <div className="relative h-5 w-5 overflow-hidden rounded-full">
+                        <Image
+                          src={chatbotImage || "/placeholder.svg"}
+                          alt={chatbotName || "Chatbot"}
+                          fill
+                          className="object-cover"
+                          sizes="20px"
+                        />
+                      </div>
+                    ) : (
+                      <Bot className="h-5 w-5" />
+                    )}
                   </div>
                   <div className="text-sm">{message.content}</div>
                 </div>

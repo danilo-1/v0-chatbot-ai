@@ -77,7 +77,11 @@ export default async function ChatbotPage({ params }: ChatbotPageProps) {
             </div>
           )}
 
-          <ChatPlayground chatbotId={chatbot.id} />
+          <ChatPlayground
+            chatbotId={chatbot.id}
+            chatbotName={chatbot.name}
+            chatbotImage={chatbot.imageUrl || undefined}
+          />
         </div>
       </main>
       <footer className="border-t py-6">

@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { ImageUpload } from "@/components/ui/image-upload" // Importar o componente de upload
 
 interface ChatbotSettingsProps {
   chatbot: {
@@ -21,6 +22,7 @@ interface ChatbotSettingsProps {
     description: string | null
     isPublic: boolean
     knowledgeBase: string | null
+    imageUrl: string | null // Adicionar campo para a URL da imagem
   }
 }
 
@@ -35,6 +37,7 @@ export function ChatbotSettings({ chatbot }: ChatbotSettingsProps) {
     description: chatbot.description || "",
     isPublic: chatbot.isPublic,
     knowledgeBase: chatbot.knowledgeBase || "",
+    imageUrl: chatbot.imageUrl || "", // Adicionar campo para a URL da imagem
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -44,6 +47,11 @@ export function ChatbotSettings({ chatbot }: ChatbotSettingsProps) {
 
   const handleSwitchChange = (checked: boolean) => {
     setFormData((prev) => ({ ...prev, isPublic: checked }))
+  }
+
+  // Adicionar handler para a imagem
+  const handleImageChange = (url: string) => {
+    setFormData((prev) => ({ ...prev, imageUrl: url }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -124,6 +132,14 @@ export function ChatbotSettings({ chatbot }: ChatbotSettingsProps) {
                 rows={3}
               />
             </div>
+
+            {/* Adicionar o componente de upload de imagem */}
+            <ImageUpload
+              value={formData.imageUrl}
+              onChange={handleImageChange}
+              label="Chatbot Image"
+              disabled={isSubmitting}
+            />
 
             <div className="flex items-center space-x-2">
               <Switch id="isPublic" checked={formData.isPublic} onCheckedChange={handleSwitchChange} />

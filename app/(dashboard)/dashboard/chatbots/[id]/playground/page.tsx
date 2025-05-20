@@ -50,7 +50,11 @@ export default async function PlaygroundPage({ params }: PlaygroundPageProps) {
           {chatbot.userId === session?.user?.id && <TabsTrigger value="settings">Settings</TabsTrigger>}
         </TabsList>
         <TabsContent value="chat" className="mt-6">
-          <ChatPlayground chatbotId={chatbot.id} />
+          <ChatPlayground
+            chatbotId={chatbot.id}
+            chatbotName={chatbot.name}
+            chatbotImage={chatbot.imageUrl || undefined}
+          />
         </TabsContent>
         {chatbot.userId === session?.user?.id && (
           <TabsContent value="settings" className="mt-6">
