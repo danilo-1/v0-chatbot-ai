@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth/next"
 import { sql } from "@/lib/db"
 import { ChatbotSettings } from "@/components/chatbot-settings"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Code } from "lucide-react"
 
 // Disable caching for this page
 export const dynamic = "force-dynamic"
@@ -57,9 +61,17 @@ export default async function EditChatbotPage({ params }: EditChatbotPageProps) 
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Edit Chatbot</h1>
-        <p className="text-muted-foreground">Update your chatbot's settings and knowledge base.</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Edit Chatbot</h1>
+          <p className="text-muted-foreground">Update your chatbot's settings and knowledge base.</p>
+        </div>
+        <Link href={`/dashboard/chatbots/${params.id}/embed`}>
+          <Button variant="outline">
+            <Code className="mr-2 h-4 w-4" />
+            Implementar no meu site
+          </Button>
+        </Link>
       </div>
 
       {error && (
@@ -68,7 +80,29 @@ export default async function EditChatbotPage({ params }: EditChatbotPageProps) 
         </div>
       )}
 
-      <ChatbotSettings chatbot={chatbot} />
+      <Tabs defaultValue="settings" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="settings">Configurações</TabsTrigger>
+          <TabsTrigger value="embed">Implementar</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="settings">
+          <ChatbotSettings chatbot={chatbot} />
+        </TabsContent>
+
+        <TabsContent value="embed">
+          <div className="bg-card border rounded-lg p-6">
+            <h2 className="text-2xl font-bold mb-4">Implementar Chatbot</h2>
+            <p className="mb-4">Adicione este chatbot ao seu site ou aplicativo.</p>
+            <Link href={`/dashboard/chatbots/${params.id}/embed`}>
+              <Button>
+                <Code className="mr-2 h-4 w-4" />
+                Ver opções de implementação
+              </Button>
+            </Link>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

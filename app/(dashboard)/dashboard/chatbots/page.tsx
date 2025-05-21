@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth/next"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Bot, Edit, MessageSquare, Plus } from "lucide-react"
+import { Bot, Code, Edit, MessageSquare, Plus } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { DeleteChatbotButton } from "@/components/delete-chatbot-button"
@@ -114,6 +114,12 @@ export default async function ChatbotsPage() {
                     <Button variant="outline" size="sm">
                       <MessageSquare className="mr-2 h-4 w-4" />
                       Playground
+                    </Button>
+                  </Link>
+                  <Link href={`/dashboard/chatbots/${chatbot.id}/embed`}>
+                    <Button variant="outline" size="sm">
+                      <Code className="mr-2 h-4 w-4" />
+                      Embed
                     </Button>
                   </Link>
                 </div>
