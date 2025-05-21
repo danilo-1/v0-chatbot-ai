@@ -208,6 +208,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
                 opacity: 1;
               }
             }
+            
+            @media (max-width: 480px) {
+              #chatbot-widget-container {
+                width: calc(100vw - 40px);
+                height: 70vh;
+              }
+            }
           \`;
           document.head.appendChild(styleEl);
         };
@@ -320,8 +327,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           showLoading(true);
           
           try {
-            // Enviar requisição para a API
-            const response = await fetch(\`\${baseUrl}/api/v1/chatbots/\${chatbotId}/chat\`, {
+            // Usar o endpoint original do chatbot que já funciona
+            const response = await fetch(\`\${baseUrl}/api/chatbots/\${chatbotId}/chat\`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -338,7 +345,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             const data = await response.json();
             
             // Adicionar resposta do assistente
-            addMessage(data.message || data.content || "Desculpe, ocorreu um erro.", "assistant");
+            addMessage(data.content || data.message || "Desculpe, ocorreu um erro.", "assistant");
           } catch (error) {
             console.error("Erro:", error);
             addMessage("Desculpe, ocorreu um erro ao processar sua mensagem.", "assistant");
