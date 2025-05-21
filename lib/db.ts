@@ -50,4 +50,7 @@ try {
   })
 }
 
+// Add the named export 'db' that was missing
+export const db = prisma
+
 export default prisma
