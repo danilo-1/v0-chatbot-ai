@@ -18,10 +18,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return new NextResponse("Chatbot not found", { status: 404 })
     }
 
-    // URL base da aplicação
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    // URL base correta da aplicação
+    const baseUrl = "https://v0-chatbot-ai-kf.vercel.app"
 
     // Gerar o script do widget
     const widgetScript = `

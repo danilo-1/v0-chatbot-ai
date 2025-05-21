@@ -27,9 +27,9 @@ export default async function EmbedPage({ params }: { params: { id: string } }) 
     }
 
     const chatbotData = chatbot[0]
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+
+    // Usar a URL correta do aplicativo
+    const baseUrl = "https://v0-chatbot-ai-kf.vercel.app"
 
     const scriptEmbed = `<script src="${baseUrl}/api/widget/${params.id}" async></script>`
     const iframeEmbed = `<iframe src="${baseUrl}/embed/${params.id}" width="350" height="500" frameborder="0"></iframe>`
