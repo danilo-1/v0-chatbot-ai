@@ -4,13 +4,6 @@ import { neon } from "@neondatabase/serverless"
 export const dynamic = "force-dynamic"
 export const fetchCache = "force-no-store"
 
-// Desativar o X-Frame-Options para esta rota
-export const metadata = {
-  other: {
-    "X-Frame-Options": "ALLOWALL",
-  },
-}
-
 export default async function EmbedPage({
   params,
   searchParams,
@@ -44,7 +37,7 @@ export default async function EmbedPage({
         <head>
           <title>Chat com {chatbotData.name}</title>
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <meta httpEquiv="Content-Security-Policy" content="frame-ancestors *" />
+          <meta httpEquiv="Content-Security-Policy" content="frame-ancestors 'self' http: https: data:" />
           <style
             dangerouslySetInnerHTML={{
               __html: `
@@ -236,7 +229,7 @@ export default async function EmbedPage({
       <html>
         <head>
           <title>Erro</title>
-          <meta httpEquiv="Content-Security-Policy" content="frame-ancestors *" />
+          <meta httpEquiv="Content-Security-Policy" content="frame-ancestors 'self' http: https: data:" />
         </head>
         <body
           style={{
