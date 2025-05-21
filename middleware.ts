@@ -4,6 +4,11 @@ import { getToken } from "next-auth/jwt"
 
 export async function middleware(request: NextRequest) {
   try {
+    // Permitir acesso à rota de embed sem autenticação
+    if (request.nextUrl.pathname.startsWith("/embed")) {
+      return NextResponse.next()
+    }
+
     const token = await getToken({ req: request })
 
     // Check if the path starts with /dashboard
@@ -31,5 +36,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/dashboard/:path*", "/embed/:path*"],
 }

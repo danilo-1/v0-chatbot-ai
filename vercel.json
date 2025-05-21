@@ -5,7 +5,28 @@
   "regions": ["iad1"],
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/embed/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors *"
+        }
+      ]
+    },
+    {
+      "source": "/((?!embed/).*)",
       "headers": [
         {
           "key": "X-Content-Type-Options",
