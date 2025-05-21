@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
-import { db } from "@/lib/db"
-import { CopyButton } from "@/components/ui/copy-button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { CopyButton } from "@/components/ui/copy-button"
+import { neon } from "@neondatabase/serverless"
 
 export default async function EmbedPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -12,22 +12,24 @@ export default async function EmbedPage({ params }: { params: { id: string } }) 
     return notFound()
   }
 
-  // Verificar se o chatbot existe e pertence ao usuário
   try {
-    const chatbot = await db.query(
-      `
+    // Usar o cliente neon diretamente
+    const sql = neon(process.env.DATABASE_URL!)
+
+    // Verificar se o chatbot existe e pertence ao usuário
+    const chatbot = await sql`
       SELECT * FROM "Chatbot" 
-      WHERE id = $1 AND "userId" = $2
-    `,
-      [params.id, session.user.id],
-    )
+      WHERE id = ${params.id} AND "userId" = ${session.user.id}
+    `
 
     if (!chatbot || chatbot.length === 0) {
       return notFound()
     }
 
     const chatbotData = chatbot[0]
-    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
 
     const scriptEmbed = `<script src="${baseUrl}/api/widget/${params.id}" async></script>`
     const iframeEmbed = `<iframe src="${baseUrl}/embed/${params.id}" width="350" height="500" frameborder="0"></iframe>`
@@ -195,6 +197,11 @@ async function sendMessage(message) {
         <p className="text-red-500">
           Ocorreu um erro ao carregar as opções de embed. Por favor, tente novamente mais tarde.
         </p>
+        {process.env.NODE_ENV === "development" && (
+          <pre className="bg-muted p-4 rounded-md mt-4 text-sm overflow-x-auto">
+            {error instanceof Error ? error.message : String(error)}
+          </pre>
+        )}
       </div>
     )
   }

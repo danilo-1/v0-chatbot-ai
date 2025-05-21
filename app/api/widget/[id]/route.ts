@@ -1,22 +1,27 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { neon } from "@neondatabase/serverless"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const chatbotId = params.id
 
   try {
+    // Usar o cliente neon diretamente
+    const sql = neon(process.env.DATABASE_URL!)
+
     // Verificar se o chatbot existe e é público
-    const chatbot = await db.query(
-      `
+    const chatbot = await sql`
       SELECT * FROM "Chatbot" 
-      WHERE id = $1 AND "isPublic" = true
-    `,
-      [chatbotId],
-    )
+      WHERE id = ${chatbotId} AND "isPublic" = true
+    `
 
     if (!chatbot || chatbot.length === 0) {
       return new NextResponse("Chatbot not found", { status: 404 })
     }
+
+    // URL base da aplicação
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
 
     // Gerar o script do widget
     const widgetScript = `
@@ -29,7 +34,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         const initialMessage = script.getAttribute("data-initial-message") || "Como posso ajudar?";
         
         // URL base da aplicação
-        const baseUrl = "${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"}";
+        const baseUrl = "${baseUrl}";
         
         // Criar o botão do widget
         const createWidgetButton = () => {

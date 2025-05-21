@@ -1,27 +1,34 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
-import { Check, Copy } from "lucide-react"
+import { CheckIcon, CopyIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-interface CopyButtonProps {
+interface CopyButtonProps extends React.HTMLAttributes<HTMLButtonElement> {
   value: string
-  className?: string
 }
 
-export function CopyButton({ value, className }: CopyButtonProps) {
-  const [copied, setCopied] = useState(false)
+export function CopyButton({ value, className, ...props }: CopyButtonProps) {
+  const [hasCopied, setHasCopied] = useState(false)
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(value)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setHasCopied(true)
+      setTimeout(() => {
+        setHasCopied(false)
+      }, 2000)
+    } catch (error) {
+      console.error("Failed to copy text: ", error)
+    }
   }
 
   return (
-    <Button size="sm" variant="ghost" className={className} onClick={handleCopy}>
-      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-      <span className="sr-only">Copiar</span>
+    <Button size="sm" variant="ghost" className={className} onClick={copyToClipboard} {...props}>
+      {hasCopied ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}
+      <span className="sr-only">{hasCopied ? "Copiado" : "Copiar"}</span>
     </Button>
   )
 }
