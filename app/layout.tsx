@@ -6,6 +6,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/components/auth-provider"
 import { ErrorBoundary } from "@/components/error-boundary"
+import { Analytics } from "@vercel/analytics/react"
+import { Suspense } from "react"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -26,8 +28,9 @@ export default function RootLayout({
         <ErrorBoundary>
           <AuthProvider>
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-              {children}
+              <Suspense fallback={null}>{children}</Suspense>
               <Toaster />
+              <Analytics />
             </ThemeProvider>
           </AuthProvider>
         </ErrorBoundary>
