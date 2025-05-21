@@ -37,7 +37,7 @@ export default async function EmbedPage({
         <head>
           <title>Chat com {chatbotData.name}</title>
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <meta httpEquiv="Content-Security-Policy" content="frame-ancestors 'self' http: https: data:" />
+          <meta httpEquiv="Content-Security-Policy" content="frame-ancestors *" />
           <style
             dangerouslySetInnerHTML={{
               __html: `
@@ -179,7 +179,7 @@ export default async function EmbedPage({
               
               try {
                 // Enviar mensagem para a API
-                const response = await fetch('https://v0-chatbot-ai-kf.vercel.app/api/chatbots/${chatbotId}/chat', {
+                const response = await fetch('/api/chatbots/${chatbotId}/chat', {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
@@ -229,7 +229,7 @@ export default async function EmbedPage({
       <html>
         <head>
           <title>Erro</title>
-          <meta httpEquiv="Content-Security-Policy" content="frame-ancestors 'self' http: https: data:" />
+          <meta httpEquiv="Content-Security-Policy" content="frame-ancestors *" />
         </head>
         <body
           style={{
