@@ -327,8 +327,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           showLoading(true);
           
           try {
-            // Usar o endpoint original do chatbot que já funciona
-            const response = await fetch(\`\${baseUrl}/api/chatbots/\${chatbotId}/chat\`, {
+            // Usar o endpoint específico para o widget com suporte a CORS
+            const response = await fetch(\`\${baseUrl}/api/v1/chatbots/\${chatbotId}/chat\`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -339,7 +339,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             });
             
             if (!response.ok) {
-              throw new Error("Erro ao enviar mensagem");
+              const errorData = await response.json();
+              console.error("Erro na resposta:", errorData);
+              throw new Error(errorData.error || "Erro ao enviar mensagem");
             }
             
             const data = await response.json();

@@ -1,85 +1,96 @@
-import { type NextRequest, NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
+import { generateText } from "ai"
+import { openai } from "@ai-sdk/openai"
 import { neon } from "@neondatabase/serverless"
-import { generateChatResponse } from "@/backend/chatbot"
 
+// Configurar cabeçalhos CORS
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+}
+
+// Adicionar suporte para requisições OPTIONS (preflight CORS)
 export async function OPTIONS() {
-  return new NextResponse(null, {
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    },
+  return new Response(null, {
+    status: 200,
+    headers: corsHeaders,
   })
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    // Configurar CORS
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    }
-
     // Obter o ID do chatbot
     const chatbotId = params.id
 
-    // Usar o cliente neon diretamente
+    // Conectar ao banco de dados
     const sql = neon(process.env.DATABASE_URL!)
 
-    // Verificar se o chatbot existe e é público
-    const chatbot = await sql`
+    // Buscar o chatbot
+    const chatbots = await sql`
       SELECT * FROM "Chatbot" 
       WHERE id = ${chatbotId} AND "isPublic" = true
     `
 
-    if (!chatbot || chatbot.length === 0) {
-      return new NextResponse(JSON.stringify({ error: "Chatbot not found or not public" }), {
+    if (!chatbots || chatbots.length === 0) {
+      return new Response(JSON.stringify({ error: "Chatbot not found" }), {
         status: 404,
-        headers: corsHeaders,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
       })
     }
 
-    // Obter os dados do corpo da requisição
-    const body = await request.json()
-    const { messages } = body
+    const chatbot = chatbots[0]
 
-    if (!messages || !Array.isArray(messages)) {
-      return new NextResponse(JSON.stringify({ error: "Invalid request body. 'messages' array is required." }), {
-        status: 400,
-        headers: corsHeaders,
-      })
+    // Obter o modelo de IA associado ao chatbot
+    const modelId = chatbot.modelId
+    let model = "gpt-4o"
+    let provider = "openai"
+
+    if (modelId) {
+      const models = await sql`
+        SELECT * FROM "AIModel" 
+        WHERE id = ${modelId}
+      `
+
+      if (models && models.length > 0) {
+        model = models[0].modelName || "gpt-4o"
+        provider = models[0].provider || "openai"
+      }
     }
 
-    // Registrar a sessão e a mensagem para telemetria
-    const visitorId = request.headers.get("x-visitor-id") || "anonymous"
-    const referrer = request.headers.get("referer") || request.headers.get("origin") || "unknown"
-    const userAgent = request.headers.get("user-agent") || "unknown"
+    // Obter as mensagens da requisição
+    const { messages } = await req.json()
 
-    // Gerar resposta do chatbot
-    const chatbotData = chatbot[0]
-    const response = await generateChatResponse({
-      chatbot: chatbotData,
-      messages,
-      visitorId,
-      referrer,
-      userAgent,
+    // Preparar o sistema prompt
+    const systemPrompt = chatbot.systemPrompt || "You are a helpful assistant."
+
+    // Gerar a resposta usando o AI SDK
+    const { text } = await generateText({
+      model: openai(model),
+      messages: [{ role: "system", content: systemPrompt }, ...messages],
     })
 
+    // Registrar a interação no banco de dados (opcional)
+    // Aqui você pode adicionar código para registrar a conversa
+
     // Retornar a resposta
-    return new NextResponse(JSON.stringify(response), {
+    return new Response(JSON.stringify({ content: text }), {
+      status: 200,
       headers: {
         "Content-Type": "application/json",
         ...corsHeaders,
       },
     })
   } catch (error) {
-    console.error("Error in chat API:", error)
-    return new NextResponse(JSON.stringify({ error: "An error occurred while processing your request" }), {
+    console.error("Erro ao processar requisição:", error)
+    return new Response(JSON.stringify({ error: "Failed to generate response" }), {
       status: 500,
       headers: {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
+        ...corsHeaders,
       },
     })
   }
