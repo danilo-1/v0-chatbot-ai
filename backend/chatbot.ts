@@ -2,6 +2,7 @@ import { openai } from "@ai-sdk/openai"
 import { streamText } from "ai"
 import prisma from "@/lib/db"
 import { sql } from "@/lib/db"
+import { createChatSession, logChatMessage, updateDailyMetrics } from "@/lib/telemetry"
 
 export async function getChatbotById(id: string) {
   return prisma.chatbot.findUnique({
@@ -141,7 +142,19 @@ export async function updateGlobalConfig(data: {
 }
 
 // In the generateChatbotResponse function, update the code to use the AIModel table
-export async function generateChatbotResponse(chatbotId: string, messages: { role: string; content: string }[]) {
+export async function generateChatbotResponse(
+  chatbotId: string,
+  messages: { role: string; content: string }[],
+  sessionData?: {
+    sessionId?: string
+    userId?: string
+    visitorId?: string
+    source?: string
+    referrer?: string
+    userAgent?: string
+    ipAddress?: string
+  },
+) {
   // Get chatbot and global config
   const [chatbot, globalConfig] = await Promise.all([getChatbotById(chatbotId), getGlobalConfig()])
 
@@ -203,6 +216,35 @@ If you don't know the answer, say so politely.`
   // Create a new array with the system message at the beginning
   const messagesWithSystem = [{ role: "system", content: systemPrompt }, ...messages]
 
+  // Create or get session ID for telemetry
+  let sessionId = sessionData?.sessionId
+
+  if (!sessionId && sessionData) {
+    try {
+      sessionId = await createChatSession({
+        chatbotId,
+        userId: sessionData.userId,
+        visitorId: sessionData.visitorId || `anon-${Date.now()}`,
+        source: sessionData.source,
+        referrer: sessionData.referrer,
+        userAgent: sessionData.userAgent,
+        ipAddress: sessionData.ipAddress,
+      })
+
+      // Log user message
+      if (messages.length > 0 && messages[messages.length - 1].role === "user") {
+        await logChatMessage({
+          sessionId,
+          role: "user",
+          content: messages[messages.length - 1].content,
+        })
+      }
+    } catch (error) {
+      console.error("Error creating chat session:", error)
+      // Continue even if telemetry fails
+    }
+  }
+
   // Generate response using the selected model
   const result = streamText({
     model: openai(modelId),
@@ -210,6 +252,29 @@ If you don't know the answer, say so politely.`
     temperature: chatbot.temperature,
     maxTokens: maxTokens,
   })
+
+  // Log assistant message when complete
+  if (sessionId) {
+    result.text.then(async (text) => {
+      try {
+        await logChatMessage({
+          sessionId,
+          role: "assistant",
+          content: text,
+          modelId: aiModel?.id,
+        })
+
+        // Update message count and end session if this is the last message
+        const messageCount = messages.length + 1 // +1 for the assistant response
+
+        // We're not ending the session here, as the user might continue the conversation
+        // But we'll update the daily metrics
+        await updateDailyMetrics(chatbotId, new Date())
+      } catch (error) {
+        console.error("Error logging assistant message:", error)
+      }
+    })
+  }
 
   return result
 }
