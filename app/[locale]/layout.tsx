@@ -2,7 +2,7 @@ import type React from "react"
 import { Inter } from "next/font/google"
 import { notFound } from "next/navigation"
 import { NextIntlClientProvider } from "next-intl"
-import { getMessages, getTranslations, unstable_setRequestLocale } from "next-intl/server"
+import { getMessages, getTranslations } from "next-intl/server"
 
 import { ThemeProvider } from "@/components/theme-provider"
 import "@/app/globals.css"
@@ -32,9 +32,6 @@ export default async function RootLayout({
   // Validate locale
   const isValidLocale = ["en", "pt", "es", "fr", "de"].includes(locale)
   if (!isValidLocale) notFound()
-
-  // Enable static rendering
-  unstable_setRequestLocale(locale)
 
   // Get messages for client components
   const messages = await getMessages()

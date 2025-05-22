@@ -5,7 +5,6 @@ import { useLocale } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Check, ChevronDown, Globe } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { createSharedPathnamesNavigation } from "next-intl/navigation"
 
 interface Language {
   name: string
@@ -21,14 +20,10 @@ const languages: Language[] = [
   { name: "Deutsch", code: "de", flag: "🇩🇪" },
 ]
 
-const locales = ["en", "pt", "es", "fr", "de"]
-const { usePathname: useI18nPathname, Link } = createSharedPathnamesNavigation({ locales })
-
 export function LanguageSwitcher() {
   const locale = useLocale()
   const router = useRouter()
   const pathname = usePathname()
-  const i18nPathname = useI18nPathname()
 
   const handleLanguageChange = (langCode: string) => {
     // Construir a nova URL com o idioma selecionado
