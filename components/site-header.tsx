@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils"
 import { LogIn, Menu } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState } from "react"
+import { LanguageSwitcher } from "@/components/language-switcher"
 
 export function SiteHeader() {
   const pathname = usePathname()
@@ -82,16 +83,21 @@ export function SiteHeader() {
                   <Link href="/dashboard">Dashboard</Link>
                 </Button>
               ) : (
-                <Button
-                  className="mt-4 w-full"
-                  onClick={() => {
-                    signIn()
-                    setOpen(false)
-                  }}
-                >
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Entrar
-                </Button>
+                <>
+                  <div className="mt-4 flex items-center gap-2">
+                    <LanguageSwitcher />
+                  </div>
+                  <Button
+                    className="mt-4 w-full"
+                    onClick={() => {
+                      signIn()
+                      setOpen(false)
+                    }}
+                  >
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Entrar
+                  </Button>
+                </>
               )}
             </SheetContent>
           </Sheet>
@@ -116,6 +122,7 @@ export function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
           <ThemeToggle />
           {user ? (
             <Button asChild>
