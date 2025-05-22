@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/hooks/use-auth"
@@ -16,32 +17,34 @@ import { cn } from "@/lib/utils"
 import { LogIn, Menu } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState } from "react"
+import { LanguageSwitcher } from "./language-switcher"
 
 export function SiteHeader() {
   const pathname = usePathname()
   const { user, signIn } = useAuth()
   const [open, setOpen] = useState(false)
+  const t = useTranslations("navigation")
 
   const routes = [
     {
       href: "/",
       label: "Home",
-      active: pathname === "/",
+      active: pathname === "/" || pathname.endsWith("/"),
     },
     {
       href: "/catalog",
-      label: "Catálogo",
-      active: pathname === "/catalog",
+      label: t("catalog"),
+      active: pathname.includes("/catalog"),
     },
     {
       href: "/pricing",
-      label: "Preços",
-      active: pathname === "/pricing",
+      label: t("pricing"),
+      active: pathname.includes("/pricing"),
     },
     {
       href: "/about",
-      label: "Sobre",
-      active: pathname === "/about",
+      label: t("about"),
+      active: pathname.includes("/about"),
     },
   ]
 
@@ -79,7 +82,7 @@ export function SiteHeader() {
               </div>
               {user ? (
                 <Button className="mt-4 w-full" asChild onClick={() => setOpen(false)}>
-                  <Link href="/dashboard">Dashboard</Link>
+                  <Link href="/dashboard">{t("dashboard")}</Link>
                 </Button>
               ) : (
                 <Button
@@ -90,7 +93,7 @@ export function SiteHeader() {
                   }}
                 >
                   <LogIn className="mr-2 h-4 w-4" />
-                  Entrar
+                  {t("login")}
                 </Button>
               )}
             </SheetContent>
@@ -116,15 +119,16 @@ export function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
           <ThemeToggle />
           {user ? (
             <Button asChild>
-              <Link href="/dashboard">Dashboard</Link>
+              <Link href="/dashboard">{t("dashboard")}</Link>
             </Button>
           ) : (
             <Button onClick={signIn} className="hidden md:flex">
               <LogIn className="mr-2 h-4 w-4" />
-              Entrar
+              {t("login")}
             </Button>
           )}
         </div>

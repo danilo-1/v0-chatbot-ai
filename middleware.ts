@@ -1,18 +1,18 @@
+import createMiddleware from "next-intl/middleware"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getToken } from "next-auth/jwt"
 
 // Lista de idiomas suportados
-const supportedLocales = ["en-US", "pt-BR", "es-ES", "fr-FR", "de-DE"]
+const locales = ["en", "pt", "es", "fr", "de"]
+const defaultLocale = "en"
 
-// Mapeamento de códigos de idioma para locales completos
-const languageToLocale: Record<string, string> = {
-  en: "en-US",
-  pt: "pt-BR",
-  es: "es-ES",
-  fr: "fr-FR",
-  de: "de-DE",
-}
+// Middleware de internacionalização
+const intlMiddleware = createMiddleware({
+  locales,
+  defaultLocale,
+  localeDetection: true,
+})
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
@@ -56,35 +56,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // 1. Verificar se há um parâmetro de idioma na URL (ex: ?lang=pt)
-  const { searchParams } = request.nextUrl
-  const langParam = searchParams.get("lang")
-  let locale = langParam ? languageToLocale[langParam] || "en-US" : null
-
-  // 2. Se não houver parâmetro, verificar o subdomínio (ex: pt.chatbotai.vercel.app)
-  if (!locale) {
-    const hostname = request.headers.get("host") || ""
-    const subdomain = hostname.split(".")[0]
-
-    // Verificar se o subdomínio é um código de idioma válido
-    if (subdomain && languageToLocale[subdomain]) {
-      locale = languageToLocale[subdomain]
-    }
-  }
-
-  // 3. Se ainda não tiver um locale, verificar o cabeçalho Accept-Language
-  if (!locale) {
-    const acceptLanguage = request.headers.get("accept-language") || ""
-    const preferredLanguage = acceptLanguage.split(",")[0].split("-")[0]
-    locale = languageToLocale[preferredLanguage] || "en-US"
-  }
-
-  // Definir o cookie de idioma
-  const response = NextResponse.next()
-  response.cookies.set("NEXT_LOCALE", locale, {
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7, // 1 semana
-  })
+  // Aplicar middleware de internacionalização
+  const response = intlMiddleware(request)
 
   // Add CORS headers for API routes
   if (path.startsWith("/api/")) {
@@ -106,6 +79,6 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api).*)",
   ],
 }
