@@ -1,68 +1,46 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import { getToken } from "next-auth/jwt"
 
-export async function middleware(request: NextRequest) {
-  const path = request.nextUrl.pathname
+// Lista de idiomas suportados
+const supportedLocales = ["en-US", "pt-BR", "es-ES", "fr-FR", "de-DE"]
 
-  // Define public paths that don't require authentication
-  const publicPaths = [
-    "/",
-    "/login",
-    "/catalog",
-    "/api/health",
-    "/api/debug",
-    "/api/init-db",
-    "/api/db-setup",
-    "/api/db-repair",
-  ]
-
-  // Check if the path is public or starts with certain prefixes
-  const isPublicPath =
-    publicPaths.includes(path) ||
-    path.startsWith("/api/auth") ||
-    path.startsWith("/chatbot/") ||
-    path.startsWith("/embed/") ||
-    path.startsWith("/api/chatbots/") ||
-    path.startsWith("/api/v1/") ||
-    path.startsWith("/api/widget/")
-
-  // If it's not a public path, check for authentication
-  if (!isPublicPath) {
-    const token = await getToken({ req: request })
-
-    // If no token, redirect to login
-    if (!token) {
-      const url = new URL("/login", request.url)
-      url.searchParams.set("callbackUrl", encodeURI(request.url))
-      return NextResponse.redirect(url)
-    }
-  }
-
-  // Add CORS headers for API routes
-  if (path.startsWith("/api/")) {
-    const response = NextResponse.next()
-
-    // Add CORS headers for API routes
-    response.headers.set("Access-Control-Allow-Origin", "*")
-    response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-    return response
-  }
-
-  return NextResponse.next()
+// Mapeamento de países para idiomas
+const countryToLocale: Record<string, string> = {
+  BR: "pt-BR",
+  US: "en-US",
+  GB: "en-US",
+  ES: "es-ES",
+  MX: "es-ES",
+  FR: "fr-FR",
+  DE: "de-DE",
+  // Adicione mais mapeamentos conforme necessário
 }
 
-// Configure the middleware to run on specific paths
+export function middleware(request: NextRequest) {
+  // Obter o idioma atual da URL (se existir)
+  const pathname = request.nextUrl.pathname
+
+  // Ignorar arquivos estáticos e API
+  if (pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname.includes(".")) {
+    return NextResponse.next()
+  }
+
+  // Obter o país do cabeçalho Cloudflare ou similar
+  const country = request.geo?.country || "US"
+
+  // Determinar o locale com base no país
+  const locale = countryToLocale[country] || "en-US"
+
+  // Definir o cookie de idioma
+  const response = NextResponse.next()
+  response.cookies.set("NEXT_LOCALE", locale, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7, // 1 semana
+  })
+
+  return response
+}
+
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    "/((?!_next/static|_next/image|favicon.ico).*)",
-  ],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 }
