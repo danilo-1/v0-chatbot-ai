@@ -14,6 +14,8 @@ import { Separator } from "@/components/ui/separator"
 import { Info, Loader2, Plus, Save, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import Link from "next/link"
+import { FileText } from "lucide-react"
 
 export default function NeedHelpAdminPage() {
   const router = useRouter()
@@ -210,15 +212,25 @@ export default function NeedHelpAdminPage() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Módulo "Need Help"</h1>
-          <p className="text-muted-foreground">Gerencie o módulo de ajuda contextual para seus chatbots</p>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Módulo "Need Help"</h1>
+            <p className="text-muted-foreground">Gerencie o módulo de ajuda contextual para seus chatbots</p>
+          </div>
+          <div className="flex space-x-2">
+            <Button variant="outline" asChild>
+              <Link href="/dashboard/admin/need-help/docs">
+                <FileText className="mr-2 h-4 w-4" />
+                Ver Documentação
+              </Link>
+            </Button>
+            <Button onClick={handleSaveSettings} disabled={saving}>
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Salvar Alterações
+            </Button>
+          </div>
         </div>
-        <Button onClick={handleSaveSettings} disabled={saving}>
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          Salvar Alterações
-        </Button>
       </div>
 
       <Tabs defaultValue="settings">
