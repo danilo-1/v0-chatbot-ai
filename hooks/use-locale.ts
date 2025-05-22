@@ -5,7 +5,7 @@ import { getCookie } from "cookies-next"
 
 export function useLocale() {
   const [locale, setLocale] = useState<string>("en-US")
-  const [country, setCountry] = useState<string | null>(null)
+  const [domain, setDomain] = useState<string | null>(null)
 
   useEffect(() => {
     // Obter o locale do cookie definido pelo middleware
@@ -14,16 +14,15 @@ export function useLocale() {
       setLocale(detectedLocale)
     }
 
-    // Obter informações do país para mensagem personalizada
-    fetch("/api/user-info")
+    // Obter o domínio atual
+    const currentDomain = window.location.hostname
+    setDomain(currentDomain)
+
+    // Obter informações do domínio para mensagem personalizada
+    fetch("/api/domain-info")
       .then((res) => res.json())
-      .then((data) => {
-        if (data.country) {
-          setCountry(data.country)
-        }
-      })
-      .catch((err) => console.error("Erro ao obter informações do usuário:", err))
+      .catch((err) => console.error("Erro ao obter informações do domínio:", err))
   }, [])
 
-  return { locale, country }
+  return { locale, domain }
 }
