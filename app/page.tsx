@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Bot } from "lucide-react"
-import { DomainWelcome } from "@/components/domain-welcome"
+import { ArrowRight, Bot, Briefcase, ReplaceIcon as Customize, MessageSquare } from "lucide-react"
+import { LocalizedWelcome } from "@/components/localized-welcome"
 
 export default function Home() {
   return (
@@ -25,7 +25,7 @@ export default function Home() {
       <main className="flex-1">
         <section className="py-20 md:py-32">
           <div className="container flex flex-col items-center text-center">
-            <DomainWelcome />
+            <LocalizedWelcome />
             <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
               Intelligent Chatbots for Your Business
             </h1>
@@ -46,7 +46,77 @@ export default function Home() {
             </div>
           </div>
         </section>
-        {/* Resto do conteúdo permanece o mesmo */}
+        <section className="bg-muted py-20">
+          <div className="container">
+            <h2 className="text-3xl font-bold tracking-tighter text-center mb-12">Perfect for Businesses</h2>
+            <div className="grid gap-8 md:grid-cols-3">
+              <div className="flex flex-col items-center text-center p-6 bg-background rounded-lg shadow-sm">
+                <Briefcase className="h-12 w-12 mb-4 text-primary" />
+                <h3 className="text-xl font-bold mb-2">Business FAQs</h3>
+                <p className="text-muted-foreground">
+                  Automatically answer common customer questions about your products and services.
+                </p>
+              </div>
+              <div className="flex flex-col items-center text-center p-6 bg-background rounded-lg shadow-sm">
+                <Customize className="h-12 w-12 mb-4 text-primary" />
+                <h3 className="text-xl font-bold mb-2">Fully Customizable</h3>
+                <p className="text-muted-foreground">
+                  Tailor your chatbot's knowledge, appearance, and behavior to match your brand.
+                </p>
+              </div>
+              <div className="flex flex-col items-center text-center p-6 bg-background rounded-lg shadow-sm">
+                <MessageSquare className="h-12 w-12 mb-4 text-primary" />
+                <h3 className="text-xl font-bold mb-2">Intelligent Responses</h3>
+                <p className="text-muted-foreground">
+                  Powered by advanced AI to provide helpful, context-aware answers.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section className="py-20">
+          <div className="container">
+            <h2 className="text-3xl font-bold tracking-tighter text-center mb-12">How It Works</h2>
+            <div className="grid gap-8 md:grid-cols-3">
+              <div className="flex flex-col items-center text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground mb-4">
+                  1
+                </div>
+                <h3 className="text-xl font-bold mb-2">Create an Account</h3>
+                <p className="text-muted-foreground">Sign up with your Google account in seconds.</p>
+              </div>
+              <div className="flex flex-col items-center text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground mb-4">
+                  2
+                </div>
+                <h3 className="text-xl font-bold mb-2">Add Your Knowledge</h3>
+                <p className="text-muted-foreground">Input your business information, FAQs, and product details.</p>
+              </div>
+              <div className="flex flex-col items-center text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground mb-4">
+                  3
+                </div>
+                <h3 className="text-xl font-bold mb-2">Deploy Your Chatbot</h3>
+                <p className="text-muted-foreground">Test, customize, and integrate the chatbot on your website.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section className="bg-muted py-20">
+          <div className="container">
+            <div className="flex flex-col items-center text-center">
+              <h2 className="text-3xl font-bold tracking-tighter mb-6">Ready to Get Started?</h2>
+              <p className="max-w-[600px] text-muted-foreground mb-8">
+                Join hundreds of businesses already using our AI chatbots to improve customer service and boost sales.
+              </p>
+              <Link href="/login">
+                <Button size="lg" className="gap-2">
+                  Create Your Chatbot <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
       </main>
       <footer className="border-t py-6">
         <div className="container flex flex-col items-center justify-between gap-4 md:flex-row">

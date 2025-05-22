@@ -5,27 +5,13 @@ import { getToken } from "next-auth/jwt"
 // Lista de idiomas suportados
 const supportedLocales = ["en-US", "pt-BR", "es-ES", "fr-FR", "de-DE"]
 
-// Mapeamento de países para idiomas
-const countryToLocale: Record<string, string> = {
-  BR: "pt-BR",
-  US: "en-US",
-  GB: "en-US",
-  ES: "es-ES",
-  MX: "es-ES",
-  FR: "fr-FR",
-  DE: "de-DE",
-  // Adicione mais mapeamentos conforme necessário
-}
-
-// Mapeamento de TLDs para idiomas
-const domainToLocale: Record<string, string> = {
-  "com.br": "pt-BR",
-  br: "pt-BR",
-  com: "en-US",
+// Mapeamento de códigos de idioma para locales completos
+const languageToLocale: Record<string, string> = {
+  en: "en-US",
+  pt: "pt-BR",
   es: "es-ES",
   fr: "fr-FR",
   de: "de-DE",
-  // Adicione mais mapeamentos conforme necessário
 }
 
 export async function middleware(request: NextRequest) {
@@ -70,24 +56,28 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Obter o país do cabeçalho Cloudflare ou similar
-  const country = request.geo?.country || "US"
+  // 1. Verificar se há um parâmetro de idioma na URL (ex: ?lang=pt)
+  const { searchParams } = request.nextUrl
+  const langParam = searchParams.get("lang")
+  let locale = langParam ? languageToLocale[langParam] || "en-US" : null
 
-  // Determinar o locale com base no país
-  const localeFromCountry = countryToLocale[country] || "en-US"
+  // 2. Se não houver parâmetro, verificar o subdomínio (ex: pt.chatbotai.vercel.app)
+  if (!locale) {
+    const hostname = request.headers.get("host") || ""
+    const subdomain = hostname.split(".")[0]
 
-  // Detectar idioma com base no domínio
-  const hostname = request.headers.get("host") || ""
+    // Verificar se o subdomínio é um código de idioma válido
+    if (subdomain && languageToLocale[subdomain]) {
+      locale = languageToLocale[subdomain]
+    }
+  }
 
-  // Extrair o TLD (com.br, com, es, etc.)
-  const tldMatch = hostname.match(/\.([^.]+(?:\.[^.]+)?)$/)
-  const tld = tldMatch ? tldMatch[1] : "com" // Fallback para .com
-
-  // Determinar o locale com base no TLD
-  const localeFromDomain = domainToLocale[tld] || "en-US"
-
-  // Use the locale from the domain if available, otherwise use the country locale
-  const locale = localeFromDomain || localeFromCountry
+  // 3. Se ainda não tiver um locale, verificar o cabeçalho Accept-Language
+  if (!locale) {
+    const acceptLanguage = request.headers.get("accept-language") || ""
+    const preferredLanguage = acceptLanguage.split(",")[0].split("-")[0]
+    locale = languageToLocale[preferredLanguage] || "en-US"
+  }
 
   // Definir o cookie de idioma
   const response = NextResponse.next()
