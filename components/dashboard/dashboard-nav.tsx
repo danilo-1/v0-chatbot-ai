@@ -1,57 +1,77 @@
-import type React from "react"
-import { Home, LayoutDashboard, Settings, User, HelpCircle } from "lucide-react"
+"use client"
 
-interface NavItem {
-  title: string
-  href: string
-  icon: React.ComponentType
-  admin?: boolean
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import { Bot, Home, Plus, Settings, Users } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
+
+interface DashboardNavProps {
+  setOpen?: (open: boolean) => void
 }
 
-const DashboardNav: React.FC = () => {
-  const items: NavItem[] = [
+export function DashboardNav({ setOpen }: DashboardNavProps) {
+  const pathname = usePathname()
+  const { user } = useAuth()
+
+  const isAdmin = user?.email === "danilo.nsantana.dns@gmail.com"
+
+  const routes = [
     {
-      title: "Home",
       href: "/dashboard",
+      label: "Dashboard",
       icon: Home,
+      active: pathname === "/dashboard",
     },
     {
-      title: "Overview",
-      href: "/dashboard/overview",
-      icon: LayoutDashboard,
+      href: "/dashboard/chatbots",
+      label: "Meus Chatbots",
+      icon: Bot,
+      active: pathname === "/dashboard/chatbots",
     },
     {
-      title: "Profile",
-      href: "/dashboard/profile",
-      icon: User,
+      href: "/dashboard/create",
+      label: "Criar Chatbot",
+      icon: Plus,
+      active: pathname === "/dashboard/create",
     },
     {
-      title: "Settings",
       href: "/dashboard/settings",
+      label: "Configurações",
       icon: Settings,
-    },
-    {
-      title: "Need Help",
-      href: "/dashboard/admin/need-help",
-      icon: HelpCircle,
-      admin: true,
+      active: pathname === "/dashboard/settings",
     },
   ]
 
+  // Adiciona a rota de administração global apenas para o admin
+  if (isAdmin) {
+    routes.push({
+      href: "/dashboard/admin",
+      label: "Admin Global",
+      icon: Users,
+      active: pathname === "/dashboard/admin",
+    })
+  }
+
   return (
-    <nav>
-      <ul>
-        {items.map((item) => (
-          <li key={item.title}>
-            <a href={item.href}>
-              <item.icon />
-              {item.title}
-            </a>
-          </li>
+    <nav className="hidden w-full flex-col md:flex">
+      <div className="flex flex-col gap-2 py-2">
+        {routes.map((route) => (
+          <Button
+            key={route.href}
+            variant={route.active ? "secondary" : "ghost"}
+            className={cn("justify-start", route.active && "bg-muted font-medium")}
+            asChild
+            onClick={() => setOpen && setOpen(false)}
+          >
+            <Link href={route.href}>
+              <route.icon className="mr-2 h-4 w-4" />
+              {route.label}
+            </Link>
+          </Button>
         ))}
-      </ul>
+      </div>
     </nav>
   )
 }
-
-export default DashboardNav

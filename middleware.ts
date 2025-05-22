@@ -1,18 +1,6 @@
-import createMiddleware from "next-intl/middleware"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getToken } from "next-auth/jwt"
-
-// Lista de idiomas suportados
-const locales = ["en", "pt", "es", "fr", "de"]
-const defaultLocale = "en"
-
-// Middleware de internacionalização
-const intlMiddleware = createMiddleware({
-  locales,
-  defaultLocale,
-  localeDetection: true,
-})
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
@@ -51,23 +39,19 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Ignorar arquivos estáticos e API
-  if (path.startsWith("/_next") || path.startsWith("/api") || path.includes(".")) {
-    return NextResponse.next()
-  }
-
-  // Aplicar middleware de internacionalização
-  const response = intlMiddleware(request)
-
   // Add CORS headers for API routes
   if (path.startsWith("/api/")) {
+    const response = NextResponse.next()
+
     // Add CORS headers for API routes
     response.headers.set("Access-Control-Allow-Origin", "*")
     response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
     response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+    return response
   }
 
-  return response
+  return NextResponse.next()
 }
 
 // Configure the middleware to run on specific paths
@@ -79,6 +63,6 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    "/((?!_next/static|_next/image|favicon.ico|api).*)",
+    "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 }

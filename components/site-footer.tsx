@@ -1,26 +1,30 @@
-"use client"
-
 import Link from "next/link"
-import { useTranslations } from "next-intl"
-import { Bot } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export function SiteFooter() {
-  const t = useTranslations("footer")
-
   return (
-    <footer className="border-t py-6">
-      <div className="container flex flex-col items-center justify-between gap-4 md:flex-row">
-        <div className="flex items-center gap-2">
-          <Bot className="h-5 w-5" />
-          <span className="font-semibold">ChatbotAI</span>
+    <footer className="border-t bg-background">
+      <div className="container flex flex-col items-center justify-between gap-4 py-10 md:h-24 md:flex-row md:py-0">
+        <div className="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
+          <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
+            &copy; {new Date().getFullYear()} ChatBot AI. Todos os direitos reservados.
+          </p>
         </div>
-        <p className="text-sm text-muted-foreground">{t("copyright")}</p>
         <div className="flex gap-4">
-          <Link href="#" className="text-sm text-muted-foreground hover:underline">
-            {t("privacyPolicy")}
+          <Link href="/terms">
+            <Button variant="link" size="sm" className="text-muted-foreground">
+              Termos
+            </Button>
           </Link>
-          <Link href="#" className="text-sm text-muted-foreground hover:underline">
-            {t("termsOfService")}
+          <Link href="/privacy">
+            <Button variant="link" size="sm" className="text-muted-foreground">
+              Privacidade
+            </Button>
+          </Link>
+          <Link href="/contact">
+            <Button variant="link" size="sm" className="text-muted-foreground">
+              Contato
+            </Button>
           </Link>
         </div>
       </div>

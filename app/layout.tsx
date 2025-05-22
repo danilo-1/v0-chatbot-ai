@@ -3,7 +3,6 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { LanguageProvider } from "@/contexts/language-context"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/components/auth-provider"
 import { ErrorBoundary } from "@/components/error-boundary"
@@ -29,11 +28,9 @@ export default function RootLayout({
         <ErrorBoundary>
           <AuthProvider>
             <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-              <LanguageProvider>
-                <Suspense fallback={null}>{children}</Suspense>
-                <Toaster />
-                <Analytics />
-              </LanguageProvider>
+              <Suspense fallback={null}>{children}</Suspense>
+              <Toaster />
+              <Analytics />
             </ThemeProvider>
           </AuthProvider>
         </ErrorBoundary>
