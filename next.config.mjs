@@ -1,5 +1,12 @@
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client', 'prisma']
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -7,8 +14,9 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
+    domains: ['localhost', 'vercel.app'],
     unoptimized: true,
   },
-}
+};
 
-export default nextConfig
+export default withNextIntl(nextConfig);

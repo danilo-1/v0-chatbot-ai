@@ -2,14 +2,13 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model Account {
@@ -18,12 +17,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?
-  access_token      String?
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String?
+  id_token          String? @db.Text
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -45,7 +44,6 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
-  role          String    @default("user") // "user" or "admin"
   accounts      Account[]
   sessions      Session[]
   chatbots      Chatbot[]
@@ -64,59 +62,80 @@ model Chatbot {
   id          String   @id @default(cuid())
   name        String
   description String?
-  imageUrl    String?
-  isPublic    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Chatbot configuration
-  temperature Float    @default(0.7)
-  maxTokens   Int      @default(1000)
-  
-  // Knowledge base
-  knowledgeBase String  @default("")
-  
-  // Custom prompt
-  customPrompt  String  @default("")
+  apiKey      String?  @unique
+  logoUrl     String?
+  prompt      String?  @db.Text
+  modelId     String?
+  messages    Message[]
+  contacts    Contact[]
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  role      String
+  createdAt DateTime @default(now())
+  chatbotId String
+  chatbot   Chatbot  @relation(fields: [chatbotId], references: [id], onDelete: Cascade)
+  sessionId String?
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+  chatbotId String
+  chatbot   Chatbot  @relation(fields: [chatbotId], references: [id], onDelete: Cascade)
 }
 
 model GlobalConfig {
-  id            String @id @default("global")
-  globalPrompt  String @default("You are a helpful assistant for websites. Answer questions based on the provided context.")
-  allowedTopics String @default("customer service, product information, general help")
-  blockedTopics String @default("illegal activities, harmful content, personal information")
-  maxTokens     Int    @default(2000)
-  temperature   Float  @default(0.7)
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
+model AIModel {
+  id          String   @id @default(cuid())
+  name        String
+  provider    String
+  modelId     String
+  description String?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Novos modelos para pricing
 model Plan {
-  id                String       @id @default(cuid())
-  name              String       @unique
-  description       String
-  price             Float
-  currency          String       @default("BRL")
-  interval          String       @default("month") // month, year
-  maxChatbots       Int
-  maxMessagesPerMonth Int
-  features          String[]
-  isActive          Boolean      @default(true)
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  subscriptions     Subscription[]
+  id            String   @id @default(cuid())
+  name          String
+  description   String
+  price         Int      // em centavos
+  messageLimit  Int
+  chatbotLimit  Int
+  features      String[] // Lista de recursos incluídos
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  subscriptions Subscription[]
 }
 
 model Subscription {
-  id                String       @id @default(cuid())
-  userId            String
-  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  planId            String
-  plan              Plan         @relation(fields: [planId], references: [id])
-  status            String       @default("active") // active, canceled, past_due
-  currentPeriodStart DateTime
-  currentPeriodEnd   DateTime
-  cancelAtPeriodEnd  Boolean     @default(false)
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId    String
+  plan      Plan      @relation(fields: [planId], references: [id])
+  status    String    // active, canceled, expired
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }

@@ -19,13 +19,20 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    const count = await prisma.chatbot.count({
-      where: { userId: user.id },
+    // Buscar assinatura ativa
+    const subscription = await prisma.subscription.findFirst({
+      where: {
+        userId: user.id,
+        status: "active",
+      },
+      include: {
+        plan: true,
+      },
     })
 
-    return NextResponse.json({ count })
+    return NextResponse.json({ subscription })
   } catch (error) {
-    console.error("Error counting chatbots:", error)
-    return NextResponse.json({ error: "Failed to count chatbots" }, { status: 500 })
+    console.error("Error fetching current subscription:", error)
+    return NextResponse.json({ error: "Failed to fetch current subscription" }, { status: 500 })
   }
 }

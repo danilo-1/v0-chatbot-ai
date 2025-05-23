@@ -5,14 +5,16 @@ import { useState, useEffect } from "react"
 interface Plan {
   id: string
   name: string
-  maxChatbots: number
-  maxMessagesPerMonth: number
+  price: number
+  messageLimit: number
+  chatbotLimit: number
 }
 
 interface Subscription {
-  id?: string
+  id: string
   status: string
-  plan?: Plan
+  planId: string
+  plan: Plan
 }
 
 export function useSubscription() {
@@ -21,15 +23,19 @@ export function useSubscription() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchSubscription = async () => {
+    async function fetchSubscription() {
       try {
-        const response = await fetch("/api/subscriptions")
-        if (!response.ok) throw new Error("Falha ao carregar assinatura")
-        const data = await response.json()
-        setSubscription(data)
+        const response = await fetch("/api/subscriptions/current")
+        if (response.ok) {
+          const data = await response.json()
+          setSubscription(data.subscription)
+        } else {
+          // Se não houver assinatura, não é um erro
+          setSubscription(null)
+        }
       } catch (err) {
+        setError("Erro ao carregar dados da assinatura")
         console.error(err)
-        setError("Falha ao carregar informações da assinatura")
       } finally {
         setLoading(false)
       }
@@ -38,38 +44,29 @@ export function useSubscription() {
     fetchSubscription()
   }, [])
 
-  const canCreateChatbot = (currentCount: number): boolean => {
-    if (!subscription || subscription.status !== "active" || !subscription.plan) {
-      return false // Sem assinatura ativa, não pode criar
+  const isWithinChatbotLimit = async (): Promise<boolean> => {
+    if (!subscription) return true // Sem assinatura, usar limites padrão
+
+    try {
+      const response = await fetch("/api/chatbots/count")
+      if (!response.ok) {
+        throw new Error("Failed to fetch chatbot count")
+      }
+
+      const data = await response.json()
+      return data.count < subscription.plan.chatbotLimit
+    } catch (error) {
+      console.error("Error checking chatbot limit:", error)
+      return false
     }
-
-    return currentCount < subscription.plan.maxChatbots
-  }
-
-  const getRemainingMessages = (): number => {
-    if (!subscription || subscription.status !== "active" || !subscription.plan) {
-      return 0
-    }
-
-    // Aqui você poderia implementar a lógica para verificar quantas mensagens já foram usadas no mês
-    // Por simplicidade, estamos retornando o máximo permitido
-    return subscription.plan.maxMessagesPerMonth
-  }
-
-  const getCurrentPlan = (): Plan | null => {
-    if (!subscription || subscription.status !== "active" || !subscription.plan) {
-      return null
-    }
-
-    return subscription.plan
   }
 
   return {
     subscription,
     loading,
     error,
-    canCreateChatbot,
-    getRemainingMessages,
-    getCurrentPlan,
+    isWithinChatbotLimit,
+    chatbotLimit: subscription?.plan.chatbotLimit || 2, // Limite padrão
+    messageLimit: subscription?.plan.messageLimit || 1000, // Limite padrão
   }
 }
