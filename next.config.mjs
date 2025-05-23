@@ -9,23 +9,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  async headers() {
-    return [
-      {
-        source: "/embed/:path*",
-        headers: [
-          {
-            key: "X-Frame-Options",
-            value: "ALLOWALL",
-          },
-          {
-            key: "Content-Security-Policy",
-            value: "frame-ancestors 'self' http: https: data:",
-          },
-        ],
-      },
-    ]
-  },
 }
 
 export default nextConfig

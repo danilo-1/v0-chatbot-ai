@@ -49,6 +49,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   chatbots      Chatbot[]
+  subscriptions Subscription[]
 }
 
 model VerificationToken {
@@ -88,4 +89,34 @@ model GlobalConfig {
   blockedTopics String @default("illegal activities, harmful content, personal information")
   maxTokens     Int    @default(2000)
   temperature   Float  @default(0.7)
+}
+
+model Plan {
+  id                String       @id @default(cuid())
+  name              String       @unique
+  description       String
+  price             Float
+  currency          String       @default("BRL")
+  interval          String       @default("month") // month, year
+  maxChatbots       Int
+  maxMessagesPerMonth Int
+  features          String[]
+  isActive          Boolean      @default(true)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  subscriptions     Subscription[]
+}
+
+model Subscription {
+  id                String       @id @default(cuid())
+  userId            String
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId            String
+  plan              Plan         @relation(fields: [planId], references: [id])
+  status            String       @default("active") // active, canceled, past_due
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean     @default(false)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 }

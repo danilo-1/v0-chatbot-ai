@@ -1,0 +1,96 @@
+{
+  "app": {
+    "name": "ChatbotAI"
+  },
+  "navigation": {
+    "catalog": "Catálogo",
+    "getStarted": "Começar",
+    "login": "Entrar",
+    "dashboard": "Painel",
+    "settings": "Configurações",
+    "logout": "Sair"
+  },
+  "home": {
+    "hero": {
+      "title": "Chatbots Inteligentes para seu Negócio",
+      "description": "Crie chatbots de IA personalizáveis que entendem seu negócio e respondem às perguntas dos clientes de forma inteligente.",
+      "createButton": "Crie seu Chatbot",
+      "exploreButton": "Explorar Catálogo"
+    },
+    "features": {
+      "title": "Perfeito para Empresas",
+      "businessFaqs": {
+        "title": "FAQs Empresariais",
+        "description": "Responda automaticamente às perguntas comuns dos clientes sobre seus produtos e serviços."
+      },
+      "customizable": {
+        "title": "Totalmente Personalizável",
+        "description": "Adapte o conhecimento, aparência e comportamento do seu chatbot para combinar com sua marca."
+      },
+      "intelligent": {
+        "title": "Respostas Inteligentes",
+        "description": "Alimentado por IA avançada para fornecer respostas úteis e contextuais."
+      }
+    },
+    "howItWorks": {
+      "title": "Como Funciona",
+      "step1": {
+        "title": "Crie uma Conta",
+        "description": "Registre-se com sua conta Google em segundos."
+      },
+      "step2": {
+        "title": "Adicione seu Conhecimento",
+        "description": "Insira informações da sua empresa, FAQs e detalhes do produto."
+      },
+      "step3": {
+        "title": "Implante seu Chatbot",
+        "description": "Teste, personalize e integre o chatbot em seu site."
+      }
+    },
+    "cta": {
+      "title": "Pronto para Começar?",
+      "description": "Junte-se a centenas de empresas que já usam nossos chatbots de IA para melhorar o atendimento ao cliente e aumentar as vendas.",
+      "button": "Crie seu Chatbot"
+    }
+  },
+  "footer": {
+    "copyright": "© 2023 ChatbotAI. Todos os direitos reservados.",
+    "privacyPolicy": "Política de Privacidade",
+    "termsOfService": "Termos de Serviço"
+  },
+  "dashboard": {
+    "welcome": "Bem-vindo ao seu painel",
+    "stats": {
+      "totalChatbots": "Total de Chatbots",
+      "totalMessages": "Total de Mensagens",
+      "activeUsers": "Usuários Ativos",
+      "responseTime": "Tempo Médio de Resposta"
+    },
+    "recentActivity": {
+      "title": "Atividade Recente",
+      "viewAll": "Ver Todos",
+      "noChatbots": "Nenhum chatbot ainda. Crie seu primeiro!",
+      "edit": "Editar",
+      "insights": "Insights"
+    },
+    "quickStart": {
+      "title": "Guia de Início Rápido",
+      "step1": "Crie um novo chatbot",
+      "step2": "Adicione sua base de conhecimento",
+      "step3": "Personalize a aparência",
+      "step4": "Teste e implante",
+      "createButton": "Criar Novo Chatbot"
+    }
+  },
+  "help": {
+    "title": "Precisa de Ajuda?",
+    "description": "Recursos para aproveitar ao máximo seu chatbot.",
+    "topics": {
+      "knowledgeBases": "Como escrever bases de conhecimento eficazes",
+      "responses": "Otimizando respostas do chatbot",
+      "integration": "Integrando com seu site",
+      "bestPractices": "Melhores práticas para chatbots de IA"
+    },
+    "viewDocs": "Ver Documentação"
+  }
+}
