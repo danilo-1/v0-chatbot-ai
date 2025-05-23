@@ -1,96 +1,32 @@
 {
-  "app": {
-    "name": "ChatbotAI"
-  },
-  "navigation": {
-    "catalog": "Catalog",
-    "getStarted": "Get Started",
-    "login": "Login",
+  "common": {
+    "welcome": "Welcome to ChatbotAI",
     "dashboard": "Dashboard",
+    "chatbots": "Chatbots",
     "settings": "Settings",
-    "logout": "Logout"
+    "profile": "Profile",
+    "logout": "Logout",
+    "login": "Login",
+    "signup": "Sign Up"
   },
   "home": {
-    "hero": {
-      "title": "Intelligent Chatbots for Your Business",
-      "description": "Create customizable AI chatbots that understand your business and answer customer questions intelligently.",
-      "createButton": "Create Your Chatbot",
-      "exploreButton": "Explore Catalog"
-    },
-    "features": {
-      "title": "Perfect for Businesses",
-      "businessFaqs": {
-        "title": "Business FAQs",
-        "description": "Automatically answer common customer questions about your products and services."
-      },
-      "customizable": {
-        "title": "Fully Customizable",
-        "description": "Tailor your chatbot's knowledge, appearance, and behavior to match your brand."
-      },
-      "intelligent": {
-        "title": "Intelligent Responses",
-        "description": "Powered by advanced AI to provide helpful, context-aware answers."
-      }
-    },
-    "howItWorks": {
-      "title": "How It Works",
-      "step1": {
-        "title": "Create an Account",
-        "description": "Sign up with your Google account in seconds."
-      },
-      "step2": {
-        "title": "Add Your Knowledge",
-        "description": "Input your business information, FAQs, and product details."
-      },
-      "step3": {
-        "title": "Deploy Your Chatbot",
-        "description": "Test, customize, and integrate the chatbot on your website."
-      }
-    },
-    "cta": {
-      "title": "Ready to Get Started?",
-      "description": "Join hundreds of businesses already using our AI chatbots to improve customer service and boost sales.",
-      "button": "Create Your Chatbot"
-    }
-  },
-  "footer": {
-    "copyright": "© 2023 ChatbotAI. All rights reserved.",
-    "privacyPolicy": "Privacy Policy",
-    "termsOfService": "Terms of Service"
+    "title": "Build AI Chatbots for Your Website",
+    "subtitle": "Create custom AI chatbots without coding",
+    "getStarted": "Get Started"
   },
   "dashboard": {
     "welcome": "Welcome to your dashboard",
-    "stats": {
-      "totalChatbots": "Total Chatbots",
-      "totalMessages": "Total Messages",
-      "activeUsers": "Active Users",
-      "responseTime": "Avg. Response Time"
-    },
-    "recentActivity": {
-      "title": "Recent Activity",
-      "viewAll": "View All",
-      "noChatbots": "No chatbots yet. Create your first one!",
-      "edit": "Edit",
-      "insights": "Insights"
-    },
-    "quickStart": {
-      "title": "Quick Start Guide",
-      "step1": "Create a new chatbot",
-      "step2": "Add your knowledge base",
-      "step3": "Customize appearance",
-      "step4": "Test and deploy",
-      "createButton": "Create New Chatbot"
-    }
+    "stats": "Your Stats",
+    "chatbotCount": "Total Chatbots",
+    "messageCount": "Total Messages"
   },
-  "help": {
-    "title": "Need Help?",
-    "description": "Resources to get the most out of your chatbot.",
-    "topics": {
-      "knowledgeBases": "How to write effective knowledge bases",
-      "responses": "Optimizing chatbot responses",
-      "integration": "Integrating with your website",
-      "bestPractices": "Best practices for AI chatbots"
-    },
-    "viewDocs": "View Documentation"
+  "subscription": {
+    "title": "Subscription Plans",
+    "current": "Current Plan",
+    "upgrade": "Upgrade Plan",
+    "cancel": "Cancel Subscription",
+    "student": "Student",
+    "team": "Team",
+    "company": "Company"
   }
 }

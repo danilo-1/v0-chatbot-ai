@@ -1,25 +1,17 @@
 import type React from "react"
+import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import { notFound } from "next/navigation"
 import { NextIntlClientProvider } from "next-intl"
-import { getMessages, getTranslations } from "next-intl/server"
-
+import { getMessages } from "next-intl/server"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/toaster"
 import "@/app/globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
 
-export function generateStaticParams() {
-  return [{ locale: "en" }, { locale: "pt" }, { locale: "es" }, { locale: "fr" }, { locale: "de" }]
-}
-
-export async function generateMetadata({ params: { locale } }: { params: { locale: string } }) {
-  const t = await getTranslations({ locale, namespace: "metadata" })
-
-  return {
-    title: t("title"),
-    description: t("description"),
-  }
+export const metadata: Metadata = {
+  title: "ChatbotAI - Build AI Chatbots for Your Website",
+  description: "Create custom AI chatbots without coding",
 }
 
 export default async function RootLayout({
@@ -29,12 +21,7 @@ export default async function RootLayout({
   children: React.ReactNode
   params: { locale: string }
 }) {
-  // Validate locale
-  const isValidLocale = ["en", "pt", "es", "fr", "de"].includes(locale)
-  if (!isValidLocale) notFound()
-
-  // Get messages for client components
-  const messages = await getMessages()
+  const messages = await getMessages({ locale })
 
   return (
     <html lang={locale} suppressHydrationWarning>
@@ -42,6 +29,7 @@ export default async function RootLayout({
         <NextIntlClientProvider locale={locale} messages={messages}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             {children}
+            <Toaster />
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

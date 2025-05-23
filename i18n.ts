@@ -1,12 +1,18 @@
 import { getRequestConfig } from "next-intl/server"
-import { notFound } from "next/navigation"
-
-const locales = ["en", "pt", "es"]
 
 export default getRequestConfig(async ({ locale }) => {
-  if (!locales.includes(locale as any)) notFound()
+  // Ensure we have a valid locale
+  const safeLocale = ["en", "pt", "es"].includes(locale) ? locale : "en"
 
-  return {
-    messages: (await import(`./messages/${locale}.json`)).default,
+  try {
+    return {
+      messages: (await import(`./messages/${safeLocale}.json`)).default,
+    }
+  } catch (error) {
+    console.error(`Failed to load messages for locale: ${safeLocale}`, error)
+    // Fallback to English if the requested locale's messages can't be loaded
+    return {
+      messages: (await import(`./messages/en.json`)).default,
+    }
   }
 })

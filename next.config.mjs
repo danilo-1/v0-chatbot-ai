@@ -4,9 +4,6 @@ const withNextIntl = createNextIntlPlugin();
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'prisma']
-  },
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -14,8 +11,24 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    domains: ['localhost', 'vercel.app'],
     unoptimized: true,
+  },
+  async headers() {
+    return [
+      {
+        source: "/embed/:path*",
+        headers: [
+          {
+            key: "X-Frame-Options",
+            value: "ALLOWALL",
+          },
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors 'self' http: https: data:",
+          },
+        ],
+      },
+    ]
   },
 };
 

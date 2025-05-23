@@ -26,6 +26,9 @@ importers:
       '@next-auth/prisma-adapter':
         specifier: latest
         version: 1.0.7(@prisma/client@6.8.2(prisma@6.8.2(typescript@5.0.2))(typescript@5.0.2))(next-auth@4.24.11(@auth/core@0.39.1(nodemailer@7.0.3))(next@15.2.4(@opentelemetry/api@1.9.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(nodemailer@7.0.3)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))
+      '@prisma/adapter-neon':
+        specifier: latest
+        version: 6.8.2(@neondatabase/serverless@1.0.0)
       '@prisma/client':
         specifier: latest
         version: 6.8.2(prisma@6.8.2(typescript@5.0.2))(typescript@5.0.2)
@@ -733,6 +736,11 @@ packages:
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
 
+  '@prisma/adapter-neon@6.8.2':
+    resolution: {integrity: sha512-wBAAoWv7CZhgY/kLGBF+NvQejqYP/GGKg/ms8gwzP6VgsoROBxY0YUJ3Y25pAFdezUj++xmn7vvAEewIproVGA==}
+    peerDependencies:
+      '@neondatabase/serverless': '>0.6.0 <2'
+
   '@prisma/client@6.8.2':
     resolution: {integrity: sha512-5II+vbyzv4si6Yunwgkj0qT/iY0zyspttoDrL3R4BYgLdp42/d2C8xdi9vqkrYtKt9H32oFIukvyw3Koz5JoDg==}
     engines: {node: '>=18.18'}
@@ -750,6 +758,9 @@ packages:
 
   '@prisma/debug@6.8.2':
     resolution: {integrity: sha512-4muBSSUwJJ9BYth5N8tqts8JtiLT8QI/RSAzEogwEfpbYGFo9mYsInsVo8dqXdPO2+Rm5OG5q0qWDDE3nyUbVg==}
+
+  '@prisma/driver-adapter-utils@6.8.2':
+    resolution: {integrity: sha512-5+CzN/41gBsRmA3ekbVy1TXnSImSPBtMlxWAttVH6tg94bv4zGGRmyk5tUCdT83nl0hG1Sq2oMXR7ml6aqILvw==}
 
   '@prisma/engines-version@6.8.0-43.2060c79ba17c6bb9f5823312b6f6b7f4a845738e':
     resolution: {integrity: sha512-Rkik9lMyHpFNGaLpPF3H5q5TQTkm/aE7DsGM5m92FZTvWQsvmi6Va8On3pWvqLHOt5aPUvFb/FeZTmphI4CPiQ==}
@@ -3415,6 +3426,12 @@ snapshots:
 
   '@polka/url@1.0.0-next.29': {}
 
+  '@prisma/adapter-neon@6.8.2(@neondatabase/serverless@1.0.0)':
+    dependencies:
+      '@neondatabase/serverless': 1.0.0
+      '@prisma/driver-adapter-utils': 6.8.2
+      postgres-array: 3.0.4
+
   '@prisma/client@6.8.2(prisma@6.8.2(typescript@5.0.2))(typescript@5.0.2)':
     optionalDependencies:
       prisma: 6.8.2(typescript@5.0.2)
@@ -3425,6 +3442,10 @@ snapshots:
       jiti: 2.4.2
 
   '@prisma/debug@6.8.2': {}
+
+  '@prisma/driver-adapter-utils@6.8.2':
+    dependencies:
+      '@prisma/debug': 6.8.2
 
   '@prisma/engines-version@6.8.0-43.2060c79ba17c6bb9f5823312b6f6b7f4a845738e': {}
 
