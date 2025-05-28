@@ -50,6 +50,7 @@ model User {
   sessions      Session[]
   chatbots      Chatbot[]
   subscriptions Subscription[]
+  usageStats    UserUsageStats?
 }
 
 model VerificationToken {
@@ -80,6 +81,9 @@ model Chatbot {
   
   // Custom prompt
   customPrompt  String  @default("")
+  
+  // Model ID (optional)
+  modelId      String?
 }
 
 model GlobalConfig {
@@ -102,6 +106,7 @@ model Plan {
   maxMessagesPerMonth Int
   features          String[]
   isActive          Boolean      @default(true)
+  isFree            Boolean      @default(false)
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
   subscriptions     Subscription[]
@@ -114,9 +119,32 @@ model Subscription {
   planId            String
   plan              Plan         @relation(fields: [planId], references: [id])
   status            String       @default("active") // active, canceled, past_due
-  currentPeriodStart DateTime
+  currentPeriodStart DateTime    @default(now())
   currentPeriodEnd   DateTime
   cancelAtPeriodEnd  Boolean     @default(false)
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
+}
+
+model UserUsageStats {
+  id                String       @id @default(cuid())
+  userId            String       @unique
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messageCount      Int          @default(0)
+  chatbotCount      Int          @default(0)
+  lastResetDate     DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+model AIModel {
+  id          String   @id @default(cuid())
+  name        String
+  modelid     String
+  provider    String
+  description String?
+  maxtokens   Int      @default(2000)
+  isactive    Boolean  @default(true)
+  isdefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

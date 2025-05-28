@@ -13,9 +13,10 @@ import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import Link from "next/link"
-
-// Adicione o import do useSubscription
-import { useSubscription } from "@/hooks/use-subscription"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { redirect } from "next/navigation"
+import { checkUserLimits } from "@/lib/usage-limits"
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -23,10 +24,64 @@ const formSchema = z.object({
   }),
 })
 
-export default function NewChatbotPage() {
+export default async function NewChatbotPage() {
+  const session = await getServerSession(authOptions)
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [chatbotCount, setChatbotCount] = useState(0)
+
+  if (!session) {
+    redirect("/login")
+  }
+
+  // Verificar limites do usuário
+  const limits = await checkUserLimits(session.user.id)
+
+  // Se o usuário excedeu o limite de chatbots, mostrar mensagem
+  if (!limits.isWithinChatbotLimit) {
+    return (
+      <div className="container mx-auto py-6">
+        <h1 className="text-3xl font-bold mb-6">Criar Novo Chatbot</h1>
+
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Limite de chatbots excedido</AlertTitle>
+          <AlertDescription className="space-y-4">
+            <p>
+              Você atingiu o limite de {limits.chatbotLimit} chatbots do seu plano atual. Para criar mais chatbots, faça
+              upgrade para um plano com mais recursos.
+            </p>
+            <div className="flex gap-4 mt-4">
+              <Button asChild>
+                <Link href="/dashboard/subscription">Ver planos disponíveis</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/dashboard/chatbots">Gerenciar chatbots existentes</Link>
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
+  // Adicione este useEffect para carregar a contagem de chatbots
+  useEffect(() => {
+    const fetchChatbotCount = async () => {
+      try {
+        const response = await fetch("/api/chatbots/count")
+        if (response.ok) {
+          const data = await response.json()
+          setChatbotCount(data.count)
+        }
+      } catch (error) {
+        console.error("Error fetching chatbot count:", error)
+      }
+    }
+
+    fetchChatbotCount()
+  }, [])
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -69,49 +124,8 @@ export default function NewChatbotPage() {
     }
   }
 
-  const { canCreateChatbot, loading: subscriptionLoading } = useSubscription()
-  const [chatbotCount, setChatbotCount] = useState(0)
-
-  // Adicione este useEffect para carregar a contagem de chatbots
-  useEffect(() => {
-    const fetchChatbotCount = async () => {
-      try {
-        const response = await fetch("/api/chatbots/count")
-        if (response.ok) {
-          const data = await response.json()
-          setChatbotCount(data.count)
-        }
-      } catch (error) {
-        console.error("Error fetching chatbot count:", error)
-      }
-    }
-
-    fetchChatbotCount()
-  }, [])
-
-  // Verifique se o usuário pode criar mais chatbots
-  if (!subscriptionLoading && !canCreateChatbot(chatbotCount)) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">Novo Chatbot</h1>
-
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Limite de chatbots atingido</AlertTitle>
-          <AlertDescription>
-            Você atingiu o limite de chatbots do seu plano atual.
-            <Link href="/dashboard/subscription" className="underline ml-1">
-              Faça upgrade do seu plano
-            </Link>{" "}
-            para criar mais chatbots.
-          </AlertDescription>
-        </Alert>
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">Novo Chatbot</h1>
       <Separator />
       <Form {...form}>
