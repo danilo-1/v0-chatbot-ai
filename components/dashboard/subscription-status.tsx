@@ -1,13 +1,13 @@
 "use client"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { useSubscription } from "@/hooks/use-subscription"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { AlertCircle } from "lucide-react"
 
 export function SubscriptionStatus({ chatbotCount = 0 }: { chatbotCount?: number }) {
   const { subscription, loading, error } = useSubscription()

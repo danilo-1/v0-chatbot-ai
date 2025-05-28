@@ -1,38 +1,52 @@
+import { getServerSession } from "next-auth/next"
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
+import { sql } from "@/lib/db"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
-import prisma from "@/prisma/client"
 
 export async function GET() {
+  const session = await getServerSession(authOptions)
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   try {
-    const session = await getServerSession(authOptions)
+    // Buscar assinatura ativa do usuário
+    const subscriptions = await sql`
+      SELECT s.*, p.name as "planName", p."chatbotLimit", p."messageLimit"
+      FROM "Subscription" s
+      JOIN "Plan" p ON s."planId" = p.id
+      WHERE s."userId" = ${session.user.id}
+      AND s.status = 'active'
+      ORDER BY s."createdAt" DESC
+      LIMIT 1
+    `
 
-    if (!session || !session.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (subscriptions.length === 0) {
+      // Se não tiver assinatura ativa, retornar plano gratuito
+      return NextResponse.json({
+        subscription: null,
+      })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    })
+    const subscription = subscriptions[0]
 
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
-    // Buscar assinatura ativa
-    const subscription = await prisma.subscription.findFirst({
-      where: {
-        userId: user.id,
-        status: "active",
-      },
-      include: {
-        plan: true,
+    // Formatar a resposta
+    return NextResponse.json({
+      subscription: {
+        id: subscription.id,
+        status: subscription.status,
+        currentPeriodEnd: subscription.currentPeriodEnd,
+        plan: {
+          id: subscription.planId,
+          name: subscription.planName,
+        },
+        chatbotLimit: subscription.chatbotLimit,
+        messageLimit: subscription.messageLimit,
       },
     })
-
-    return NextResponse.json({ subscription })
   } catch (error) {
-    console.error("Error fetching current subscription:", error)
-    return NextResponse.json({ error: "Failed to fetch current subscription" }, { status: 500 })
+    console.error("Error fetching subscription:", error)
+    return NextResponse.json({ error: "Failed to fetch subscription" }, { status: 500 })
   }
 }

@@ -6,26 +6,12 @@ import Link from "next/link"
 import { sql } from "@/lib/db"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { HelpResources } from "@/components/dashboard/help-resources"
-import dynamic from "next/dynamic"
 import { redirect } from "next/navigation"
 
-// Importar o componente SubscriptionStatus como um componente dinâmico do lado do cliente
-const SubscriptionStatus = dynamic(() => import("@/components/dashboard/subscription-status"), {
-  ssr: false,
-  loading: () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>Subscription Status</CardTitle>
-        <CardDescription>Loading subscription information...</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-20 flex items-center justify-center">
-          <div className="animate-pulse text-muted-foreground">Loading...</div>
-        </div>
-      </CardContent>
-    </Card>
-  ),
-})
+// Importar o componente SubscriptionStatus diretamente
+import SubscriptionStatusWrapper from "@/components/dashboard/subscription-status-wrapper"
+
+export const dynamic = "force-dynamic" // Disable caching for this page
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
@@ -244,7 +230,7 @@ export default async function DashboardPage() {
           </Card>
 
           {/* Subscription Status */}
-          <SubscriptionStatus chatbotCount={chatbots.length} />
+          <SubscriptionStatusWrapper chatbotCount={chatbots.length} />
 
           {/* Quick Start Guide */}
           <Card>
