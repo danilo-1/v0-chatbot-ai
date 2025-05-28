@@ -1,150 +1,137 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
+import { useSubscription } from "@/hooks/use-subscription"
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { useRouter } from "next/navigation"
-
-interface UsageLimits {
-  isWithinLimits: boolean
-  isWithinMessageLimit: boolean
-  isWithinChatbotLimit: boolean
-  messageCount: number
-  chatbotCount: number
-  messageLimit: number
-  chatbotLimit: number
-  percentageUsed: number
-}
 
 export function UsageLimitsCard() {
-  const [limits, setLimits] = useState<UsageLimits | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
+  const { subscription, loading, error } = useSubscription()
+  const [usage, setUsage] = useState({
+    messages: 0,
+    chatbots: 0,
+  })
+  const [loadingUsage, setLoadingUsage] = useState(true)
 
   useEffect(() => {
-    async function fetchLimits() {
+    async function fetchUsage() {
       try {
-        const response = await fetch("/api/user/limits")
-        if (!response.ok) {
-          throw new Error("Falha ao carregar limites de uso")
+        const response = await fetch("/api/user/usage")
+        if (response.ok) {
+          const data = await response.json()
+          setUsage(data.usage)
         }
-        const data = await response.json()
-        setLimits(data)
       } catch (err) {
-        setError("Não foi possível carregar seus limites de uso")
-        console.error(err)
+        console.error("Error fetching usage:", err)
       } finally {
-        setLoading(false)
+        setLoadingUsage(false)
       }
     }
 
-    fetchLimits()
+    fetchUsage()
   }, [])
 
-  if (loading) {
+  if (loading || loadingUsage) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Uso e Limites</CardTitle>
-          <CardDescription>Carregando informações de uso...</CardDescription>
+          <CardTitle>Usage Limits</CardTitle>
+          <CardDescription>Loading your usage data...</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-24 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="h-20 flex items-center justify-center">
+            <div className="animate-pulse text-muted-foreground">Loading...</div>
           </div>
         </CardContent>
       </Card>
     )
   }
 
-  if (error || !limits) {
+  if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Uso e Limites</CardTitle>
-          <CardDescription>Informações sobre seu plano atual</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Erro</AlertTitle>
-            <AlertDescription>{error || "Não foi possível carregar seus limites de uso"}</AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>Failed to load usage information. Please try again later.</AlertDescription>
+      </Alert>
     )
   }
 
-  const messagePercentage = Math.min(Math.round((limits.messageCount / limits.messageLimit) * 100), 100)
-  const chatbotPercentage = Math.min(Math.round((limits.chatbotCount / limits.chatbotLimit) * 100), 100)
-  const needsUpgrade = !limits.isWithinMessageLimit || !limits.isWithinChatbotLimit || messagePercentage > 80
+  // Valores padrão para plano gratuito
+  const messageLimit = subscription?.messageLimit || 50
+  const chatbotLimit = subscription?.chatbotLimit || 1
+
+  // Calcular porcentagens
+  const messagePercentage = Math.min(100, (usage.messages / messageLimit) * 100)
+  const chatbotPercentage = Math.min(100, (usage.chatbots / chatbotLimit) * 100)
+
+  // Determinar se está próximo do limite
+  const isNearMessageLimit = messagePercentage >= 80
+  const isNearChatbotLimit = chatbotPercentage >= 80
+  const isLimitExceeded = messagePercentage >= 100 || chatbotPercentage >= 100
 
   return (
-    <Card>
+    <Card className={isLimitExceeded ? "border-destructive" : ""}>
       <CardHeader>
-        <CardTitle>Uso e Limites</CardTitle>
-        <CardDescription>Informações sobre seu plano atual</CardDescription>
+        <CardTitle>Usage Limits</CardTitle>
+        <CardDescription>
+          {subscription ? `Your ${subscription.plan?.name} plan limits` : "Free tier limits"}
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {needsUpgrade && (
-          <Alert variant={messagePercentage > 90 ? "destructive" : "warning"} className="mb-4">
+      <CardContent className="space-y-4">
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium">Messages</span>
+            <span className="text-sm text-muted-foreground">
+              {usage.messages}/{messageLimit}
+            </span>
+          </div>
+          <Progress
+            value={messagePercentage}
+            className={`h-2 ${isNearMessageLimit ? "bg-amber-200" : ""} ${messagePercentage >= 100 ? "bg-destructive" : ""}`}
+          />
+          {isNearMessageLimit && messagePercentage < 100 && (
+            <p className="text-xs text-amber-600 mt-1">You're approaching your monthly message limit.</p>
+          )}
+          {messagePercentage >= 100 && (
+            <p className="text-xs text-destructive mt-1">You've reached your monthly message limit.</p>
+          )}
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium">Chatbots</span>
+            <span className="text-sm text-muted-foreground">
+              {usage.chatbots}/{chatbotLimit}
+            </span>
+          </div>
+          <Progress
+            value={chatbotPercentage}
+            className={`h-2 ${isNearChatbotLimit ? "bg-amber-200" : ""} ${chatbotPercentage >= 100 ? "bg-destructive" : ""}`}
+          />
+          {isNearChatbotLimit && chatbotPercentage < 100 && (
+            <p className="text-xs text-amber-600 mt-1">You're approaching your chatbot limit.</p>
+          )}
+          {chatbotPercentage >= 100 && (
+            <p className="text-xs text-destructive mt-1">You've reached your chatbot limit.</p>
+          )}
+        </div>
+
+        {isLimitExceeded && (
+          <Alert variant="destructive" className="mt-4">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>
-              {!limits.isWithinMessageLimit
-                ? "Limite de mensagens excedido"
-                : messagePercentage > 90
-                  ? "Limite quase atingido"
-                  : "Considere fazer upgrade"}
-            </AlertTitle>
             <AlertDescription>
-              {!limits.isWithinMessageLimit
-                ? "Você atingiu seu limite mensal de mensagens. Faça upgrade para continuar usando o chatbot."
-                : messagePercentage > 90
-                  ? "Você está prestes a atingir seu limite mensal de mensagens."
-                  : "Você já utilizou mais de 80% do seu limite mensal de mensagens."}
+              You've exceeded your plan limits. Upgrade to continue using all features.
             </AlertDescription>
           </Alert>
         )}
-
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Mensagens utilizadas</span>
-            <span className="font-medium">
-              {limits.messageCount} / {limits.messageLimit}
-            </span>
-          </div>
-          <Progress value={messagePercentage} className="h-2" />
-          <p className="text-xs text-muted-foreground">
-            {messagePercentage}% do limite mensal utilizado
-            {messagePercentage > 80 && !limits.isWithinMessageLimit && " - Limite excedido"}
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Chatbots criados</span>
-            <span className="font-medium">
-              {limits.chatbotCount} / {limits.chatbotLimit}
-            </span>
-          </div>
-          <Progress value={chatbotPercentage} className="h-2" />
-          <p className="text-xs text-muted-foreground">
-            {chatbotPercentage}% do limite de chatbots utilizado
-            {!limits.isWithinChatbotLimit && " - Limite excedido"}
-          </p>
-        </div>
       </CardContent>
       <CardFooter>
-        <Button
-          onClick={() => router.push("/dashboard/subscription")}
-          className="w-full"
-          variant={needsUpgrade ? "default" : "outline"}
-        >
-          {needsUpgrade ? "Fazer upgrade agora" : "Ver planos disponíveis"}
+        <Button variant={isLimitExceeded ? "default" : "outline"} className="w-full" asChild>
+          <Link href="/dashboard/subscription">{isLimitExceeded ? "Upgrade Now" : "View Plans"}</Link>
         </Button>
       </CardFooter>
     </Card>

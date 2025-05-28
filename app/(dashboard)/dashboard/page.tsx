@@ -6,11 +6,26 @@ import Link from "next/link"
 import { sql } from "@/lib/db"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { HelpResources } from "@/components/dashboard/help-resources"
-import { SubscriptionStatus } from "@/components/dashboard/subscription-status"
-import { UsageLimitsCard } from "@/components/dashboard/usage-limits-card"
-import { redirect } from "next/navigation" // Declare the redirect variable
+import dynamic from "next/dynamic"
+import { redirect } from "next/navigation"
 
-export const dynamic = "force-dynamic" // Disable caching for this page
+// Importar o componente SubscriptionStatus como um componente dinâmico do lado do cliente
+const SubscriptionStatus = dynamic(() => import("@/components/dashboard/subscription-status"), {
+  ssr: false,
+  loading: () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>Subscription Status</CardTitle>
+        <CardDescription>Loading subscription information...</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="h-20 flex items-center justify-center">
+          <div className="animate-pulse text-muted-foreground">Loading...</div>
+        </div>
+      </CardContent>
+    </Card>
+  ),
+})
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
@@ -96,21 +111,8 @@ export default async function DashboardPage() {
     // Don't show error for insights, just use default values
   }
 
-  // Buscar estatísticas do usuário
-  const chatbotCount = await sql`
-    SELECT COUNT(*) as count FROM "Chatbot" WHERE "userId" = ${session.user.id}
-  `
-
-  // Buscar chatbots recentes
-  const recentChatbots = await sql`
-    SELECT * FROM "Chatbot" 
-    WHERE "userId" = ${session.user.id}
-    ORDER BY "updatedAt" DESC
-    LIMIT 3
-  `
-
   return (
-    <div className="container mx-auto space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <Link href="/dashboard/chatbots/new">
@@ -281,9 +283,6 @@ export default async function DashboardPage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Usage Limits Card */}
-          <UsageLimitsCard />
-
           {/* Help Resources */}
           <HelpResources />
 
@@ -323,27 +322,6 @@ export default async function DashboardPage() {
               </Link>
             </CardFooter>
           </Card>
-
-          {/* Chatbots Recentes */}
-          <div className="bg-card rounded-lg p-4 border">
-            <h3 className="font-medium mb-4">Chatbots Recentes</h3>
-            {recentChatbots.length > 0 ? (
-              <ul className="space-y-2">
-                {recentChatbots.map((chatbot) => (
-                  <li key={chatbot.id} className="border-b pb-2 last:border-0">
-                    <a href={`/dashboard/chatbots/${chatbot.id}/playground`} className="hover:underline">
-                      {chatbot.name}
-                    </a>
-                    <p className="text-sm text-muted-foreground">
-                      Atualizado em {new Date(chatbot.updatedAt).toLocaleDateString()}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-muted-foreground">Você ainda não criou nenhum chatbot.</p>
-            )}
-          </div>
         </div>
       </div>
     </div>
