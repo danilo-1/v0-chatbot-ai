@@ -6,19 +6,11 @@ import Link from "next/link"
 import { sql } from "@/lib/db"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { HelpResources } from "@/components/dashboard/help-resources"
-import { redirect } from "next/navigation"
-
-// Importar o componente SubscriptionStatus diretamente
-import SubscriptionStatusWrapper from "@/components/dashboard/subscription-status-wrapper"
 
 export const dynamic = "force-dynamic" // Disable caching for this page
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
-
-  if (!session) {
-    redirect("/login")
-  }
 
   // Get user ID from session
   const userId = session?.user?.id
@@ -228,9 +220,6 @@ export default async function DashboardPage() {
               )}
             </CardContent>
           </Card>
-
-          {/* Subscription Status */}
-          <SubscriptionStatusWrapper chatbotCount={chatbots.length} />
 
           {/* Quick Start Guide */}
           <Card>
