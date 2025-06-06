@@ -85,3 +85,4 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 
 # OpenAI
 OPENAI_API_KEY=your-openai-api-key
+```
