@@ -12,7 +12,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   try {
     const result = await sql`
-      SELECT * FROM "OpenAIModel"
+      SELECT * FROM "AIModel"
       WHERE id = ${params.id}
     `
 
@@ -44,7 +44,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     // Check if model exists
     const modelCheck = await sql`
-      SELECT * FROM "OpenAIModel"
+      SELECT * FROM "AIModel"
       WHERE id = ${params.id}
     `
 
@@ -53,24 +53,25 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
     // If this is set as default, unset any existing default
-    if (data.isDefault) {
+    if (data.isdefault) {
       await sql`
-        UPDATE "OpenAIModel"
-        SET "isDefault" = false
-        WHERE "isDefault" = true
+        UPDATE "AIModel"
+        SET isdefault = false
+        WHERE isdefault = true
       `
     }
 
     // Update model
     const result = await sql`
-      UPDATE "OpenAIModel"
+      UPDATE "AIModel"
       SET
         name = ${data.name},
-        "modelId" = ${data.modelId},
-        "isDefault" = ${data.isDefault || false},
-        "isActive" = ${data.isActive || true},
-        "maxTokens" = ${data.maxTokens || 4000},
-        "updatedAt" = NOW()
+        modelid = ${data.modelId},
+        provider = ${data.provider || modelCheck[0].provider},
+        isdefault = ${data.isdefault || false},
+        isactive = ${data.isActive || true},
+        maxtokens = ${data.maxTokens || 4000},
+        updatedat = NOW()
       WHERE id = ${params.id}
       RETURNING *
     `
@@ -94,7 +95,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     // Check if model exists
     const modelCheck = await sql`
-      SELECT * FROM "OpenAIModel"
+      SELECT * FROM "AIModel"
       WHERE id = ${params.id}
     `
 
@@ -111,28 +112,33 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       values.name = data.name
     }
 
-    if (data.modelId !== undefined) {
-      updates.push(`"modelId" = ${data.modelId}`)
+  if (data.modelId !== undefined) {
+      updates.push(`modelid = ${data.modelId}`)
       values.modelId = data.modelId
-    }
+  }
+
+  if (data.provider !== undefined) {
+      updates.push(`provider = ${data.provider}`)
+      values.provider = data.provider
+  }
 
     if (data.isActive !== undefined) {
-      updates.push(`"isActive" = ${data.isActive}`)
+      updates.push(`isactive = ${data.isActive}`)
       values.isActive = data.isActive
     }
 
     if (data.maxTokens !== undefined) {
-      updates.push(`"maxTokens" = ${data.maxTokens}`)
+      updates.push(`maxtokens = ${data.maxTokens}`)
       values.maxTokens = data.maxTokens
     }
 
     // Always update the updatedAt timestamp
-    updates.push(`"updatedAt" = NOW()`)
+    updates.push(`updatedat = NOW()`)
 
     // Construct and execute the SQL query
-    const result = await sql`
-      UPDATE "OpenAIModel"
-      SET "isActive" = ${data.isActive}, "updatedAt" = NOW()
+  const result = await sql`
+      UPDATE "AIModel"
+      SET isactive = ${data.isActive}, updatedat = NOW()
       WHERE id = ${params.id}
       RETURNING *
     `
@@ -154,7 +160,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   try {
     // Check if model exists
     const modelCheck = await sql`
-      SELECT * FROM "OpenAIModel"
+      SELECT * FROM "AIModel"
       WHERE id = ${params.id}
     `
 
@@ -163,7 +169,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
 
     // Check if this is the default model
-    if (modelCheck[0].isDefault) {
+    if (modelCheck[0].isdefault) {
       return NextResponse.json(
         { error: "Cannot delete the default model. Set another model as default first." },
         { status: 400 },
@@ -172,7 +178,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     // Delete model
     await sql`
-      DELETE FROM "OpenAIModel"
+      DELETE FROM "AIModel"
       WHERE id = ${params.id}
     `
 
