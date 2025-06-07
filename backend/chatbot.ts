@@ -278,7 +278,3 @@ If you don't know the answer, say so politely.`
 
   return result
 }
-
-// Add the named export generateChatResponse that was missing
-// This is an alias for generateChatbotResponse for backward compatibility
-export const generateChatResponse = generateChatbotResponse
