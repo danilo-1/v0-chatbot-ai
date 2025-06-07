@@ -34,7 +34,7 @@ export default async function RootLayout({
   if (!isValidLocale) notFound()
 
   // Get messages for client components
-  const messages = await getMessages()
+  const messages = await getMessages({ locale })
 
   return (
     <html lang={locale} suppressHydrationWarning>
