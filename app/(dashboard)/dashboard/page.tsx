@@ -8,7 +8,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { HelpResources } from "@/components/dashboard/help-resources"
 import { SubscriptionStatus } from "@/components/dashboard/subscription-status"
 import { UsageLimitsCard } from "@/components/dashboard/usage-limits-card"
-import { redirect } from "next/navigation" // Declare the redirect variable
+import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic" // Disable caching for this page
 
@@ -97,17 +97,28 @@ export default async function DashboardPage() {
   }
 
   // Buscar estatísticas do usuário
-  const chatbotCount = await sql`
-    SELECT COUNT(*) as count FROM "Chatbot" WHERE "userId" = ${session.user.id}
-  `
+  let chatbotCount = { count: 0 }
+  try {
+    const result = await sql`
+      SELECT COUNT(*) as count FROM "Chatbot" WHERE "userId" = ${session.user.id}
+    `
+    chatbotCount = result[0] || { count: 0 }
+  } catch (e) {
+    console.error("Error fetching chatbot count:", e)
+  }
 
   // Buscar chatbots recentes
-  const recentChatbots = await sql`
-    SELECT * FROM "Chatbot" 
-    WHERE "userId" = ${session.user.id}
-    ORDER BY "updatedAt" DESC
-    LIMIT 3
-  `
+  let recentChatbots = []
+  try {
+    recentChatbots = await sql`
+      SELECT * FROM "Chatbot" 
+      WHERE "userId" = ${session.user.id}
+      ORDER BY "updatedAt" DESC
+      LIMIT 3
+    `
+  } catch (e) {
+    console.error("Error fetching recent chatbots:", e)
+  }
 
   return (
     <div className="container mx-auto space-y-6">

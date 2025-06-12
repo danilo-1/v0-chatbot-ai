@@ -5,13 +5,16 @@ import { DashboardNav } from "@/components/dashboard-nav"
 import { UserNav } from "@/components/user-nav"
 import { Bot } from "lucide-react"
 import Link from "next/link"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+
+export const dynamic = "force-dynamic" // Disable caching for this page
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const session = await getServerSession()
+  const session = await getServerSession(authOptions)
 
   if (!session?.user) {
     redirect("/login")
