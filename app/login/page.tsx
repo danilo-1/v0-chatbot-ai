@@ -1,19 +1,36 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Bot, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const { signIn } = useAuth()
+  const searchParams = useSearchParams()
+
+  // Limpar URL se tiver callbackUrl recursivo
+  useEffect(() => {
+    const callbackUrl = searchParams.get("callbackUrl")
+    if (callbackUrl && callbackUrl.includes("/login")) {
+      // Se o callbackUrl contém login, é um redirecionamento recursivo
+      // Limpar a URL usando history API
+      window.history.replaceState({}, document.title, "/login")
+    }
+  }, [searchParams])
 
   const handleGoogleLogin = async () => {
     setIsLoading(true)
-    await signIn()
+
+    // Obter callbackUrl limpo (sem recursão)
+    const callbackUrl = searchParams.get("callbackUrl")
+    const cleanCallbackUrl = callbackUrl && !callbackUrl.includes("/login") ? callbackUrl : undefined
+
+    await signIn(cleanCallbackUrl)
   }
 
   return (

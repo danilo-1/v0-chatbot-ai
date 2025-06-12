@@ -1,18 +1,6 @@
-import createMiddleware from "next-intl/middleware"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getToken } from "next-auth/jwt"
-
-// Lista de idiomas suportados
-const locales = ["en", "pt", "es", "fr", "de"]
-const defaultLocale = "en"
-
-// Middleware de internacionalização
-const intlMiddleware = createMiddleware({
-  locales,
-  defaultLocale,
-  localeDetection: true,
-})
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
@@ -45,8 +33,19 @@ export async function middleware(request: NextRequest) {
 
     // If no token, redirect to login
     if (!token) {
+      // IMPORTANTE: Verificar se já estamos na página de login para evitar redirecionamentos recursivos
+      if (path.includes("/login")) {
+        return NextResponse.next()
+      }
+
+      // Redirecionar para login sem adicionar callbackUrl se já estiver presente na URL
       const url = new URL("/login", request.url)
-      url.searchParams.set("callbackUrl", encodeURI(request.url))
+
+      // Só adicionar callbackUrl se não for um redirecionamento de login para login
+      if (!request.nextUrl.searchParams.has("callbackUrl")) {
+        url.searchParams.set("callbackUrl", request.nextUrl.pathname)
+      }
+
       return NextResponse.redirect(url)
     }
   }
@@ -56,18 +55,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Aplicar middleware de internacionalização
-  const response = intlMiddleware(request)
-
   // Add CORS headers for API routes
   if (path.startsWith("/api/")) {
-    // Add CORS headers for API routes
+    const response = NextResponse.next()
     response.headers.set("Access-Control-Allow-Origin", "*")
     response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
     response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    return response
   }
 
-  return response
+  return NextResponse.next()
 }
 
 // Configure the middleware to run on specific paths
@@ -79,6 +76,6 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    "/((?!_next/static|_next/image|favicon.ico|api).*)",
+    "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 }
