@@ -3,6 +3,9 @@ import { getServerSession } from "next-auth/next"
 import { sql } from "@/lib/db"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 
+// Forçar modo dinâmico para evitar erro de renderização estática
+export const dynamic = "force-dynamic"
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)

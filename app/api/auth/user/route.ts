@@ -4,6 +4,9 @@ import { getToken } from "next-auth/jwt"
 import { sql } from "@/lib/db"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 
+// Forçar modo dinâmico para evitar erro de renderização estática
+export const dynamic = "force-dynamic"
+
 export async function GET(req: Request) {
   try {
     // Get session using both methods
