@@ -13,7 +13,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   try {
     // Check if model exists
     const modelCheck = await sql`
-      SELECT * FROM "OpenAIModel"
+      SELECT * FROM "AIModel"
       WHERE id = ${params.id}
     `
 
@@ -23,15 +23,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     // Unset any existing default
     await sql`
-      UPDATE "OpenAIModel"
-      SET "isDefault" = false
-      WHERE "isDefault" = true
+      UPDATE "AIModel"
+      SET isdefault = false
+      WHERE isdefault = true
     `
 
     // Set this model as default
     const result = await sql`
-      UPDATE "OpenAIModel"
-      SET "isDefault" = true, "updatedAt" = NOW()
+      UPDATE "AIModel"
+      SET isdefault = true, updatedat = NOW()
       WHERE id = ${params.id}
       RETURNING *
     `

@@ -71,7 +71,7 @@ This project is licensed under the MIT License.
 
 Let's create a .env.example file:
 
-\`\`\`plaintext file=".env.example"
+```plaintext file=".env.example"
 # Database
 DATABASE_URL="file:./prisma/dev.db"
 
@@ -85,3 +85,4 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 
 # OpenAI
 OPENAI_API_KEY=your-openai-api-key
+```
