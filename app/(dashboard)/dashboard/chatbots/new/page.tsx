@@ -1,249 +1,154 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { Alert, AlertCircle, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
-import { Loader2 } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/use-toast"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { ImageUpload } from "@/components/ui/image-upload" // Importar o componente de upload
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Plus } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
+import Link from "next/link"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { redirect } from "next/navigation"
+import { checkUserLimits } from "@/lib/usage-limits"
 
-export default function NewChatbotPage() {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [userId, setUserId] = useState<string | null>(null)
+const formSchema = z.object({
+  name: z.string().min(2, {
+    message: "Chatbot name must be at least 2 characters.",
+  }),
+})
+
+export default async function NewChatbotPage() {
+  const session = await getServerSession(authOptions)
   const router = useRouter()
   const { toast } = useToast()
+  const [loading, setLoading] = useState(false)
+  const [chatbotCount, setChatbotCount] = useState(0)
 
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    isPublic: false,
-    knowledgeBase: "",
-    imageUrl: "", // Adicionar campo para a URL da imagem
-  })
-
-  // Check user authentication on component mount
-  useEffect(() => {
-    async function checkUser() {
-      try {
-        const response = await fetch("/api/auth/user")
-
-        if (!response.ok) {
-          const data = await response.json()
-          throw new Error(data.error || "Failed to verify user")
-        }
-
-        const userData = await response.json()
-        setUserId(userData.id)
-      } catch (error) {
-        console.error("Error checking user:", error)
-        setError(error instanceof Error ? error.message : "Failed to verify user authentication")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    checkUser()
-  }, [])
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+  if (!session) {
+    redirect("/login")
   }
 
-  const handleSwitchChange = (checked: boolean) => {
-    setFormData((prev) => ({ ...prev, isPublic: checked }))
-  }
+  // Verificar limites do usuário
+  const limits = await checkUserLimits(session.user.id)
 
-  // Adicionar handler para a imagem
-  const handleImageChange = (url: string) => {
-    setFormData((prev) => ({ ...prev, imageUrl: url }))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setError(null)
-
-    if (!userId) {
-      setError("User authentication issue. Please try logging out and back in.")
-      setIsSubmitting(false)
-      return
-    }
-
-    try {
-      console.log("Submitting form data:", formData)
-      console.log("User ID:", userId)
-
-      const response = await fetch("/api/chatbots", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...formData,
-          userId: userId, // Explicitly include userId in the request
-        }),
-      })
-
-      console.log("Response status:", response.status)
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        console.error("API error:", data)
-        throw new Error(data.details || data.error || "Failed to create chatbot")
-      }
-
-      console.log("Created chatbot:", data)
-
-      toast({
-        title: "Chatbot created",
-        description: "Your chatbot has been successfully created.",
-      })
-
-      // Force a refresh of the router cache before navigating
-      router.refresh()
-
-      // Wait a moment to ensure the refresh completes
-      setTimeout(() => {
-        // Navigate to the chatbots list instead of the playground
-        router.push("/dashboard/chatbots")
-      }, 500)
-    } catch (error) {
-      console.error("Error creating chatbot:", error)
-      setError(error instanceof Error ? error.message : "Failed to create chatbot. Please try again.")
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create chatbot. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  if (isLoading) {
+  // Se o usuário excedeu o limite de chatbots, mostrar mensagem
+  if (!limits.isWithinChatbotLimit) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="container mx-auto py-6">
+        <h1 className="text-3xl font-bold mb-6">Criar Novo Chatbot</h1>
+
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Limite de chatbots excedido</AlertTitle>
+          <AlertDescription className="space-y-4">
+            <p>
+              Você atingiu o limite de {limits.chatbotLimit} chatbots do seu plano atual. Para criar mais chatbots, faça
+              upgrade para um plano com mais recursos.
+            </p>
+            <div className="flex gap-4 mt-4">
+              <Button asChild>
+                <Link href="/dashboard/subscription">Ver planos disponíveis</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/dashboard/chatbots">Gerenciar chatbots existentes</Link>
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
       </div>
     )
   }
 
+  // Adicione este useEffect para carregar a contagem de chatbots
+  useEffect(() => {
+    const fetchChatbotCount = async () => {
+      try {
+        const response = await fetch("/api/chatbots/count")
+        if (response.ok) {
+          const data = await response.json()
+          setChatbotCount(data.count)
+        }
+      } catch (error) {
+        console.error("Error fetching chatbot count:", error)
+      }
+    }
+
+    fetchChatbotCount()
+  }, [])
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+    },
+  })
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setLoading(true)
+
+    try {
+      const response = await fetch("/api/chatbots", {
+        method: "POST",
+        body: JSON.stringify(values),
+      })
+
+      if (!response.ok) {
+        toast({
+          title: "Something went wrong.",
+          description: "Please try again later.",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Success!",
+          description: "Chatbot created.",
+        })
+        router.refresh()
+        router.push("/dashboard/chatbots")
+      }
+    } catch (error) {
+      toast({
+        title: "Something went wrong.",
+        description: "Please try again later.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Create New Chatbot</h1>
-        <p className="text-muted-foreground">Fill in the details below to create your AI chatbot.</p>
-      </div>
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <form onSubmit={handleSubmit}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-            <CardDescription>Provide basic information about your chatbot.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                name="name"
-                placeholder="E.g., Customer Support Bot"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
-              <p className="text-sm text-muted-foreground">This name will be displayed to users.</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                name="description"
-                placeholder="Describe what your chatbot does..."
-                value={formData.description}
-                onChange={handleChange}
-                rows={3}
-              />
-              <p className="text-sm text-muted-foreground">A brief description of your chatbot's purpose.</p>
-            </div>
-
-            {/* Adicionar o componente de upload de imagem */}
-            <div className="space-y-2">
-              <ImageUpload
-                value={formData.imageUrl}
-                onChange={handleImageChange}
-                label="Chatbot Image"
-                disabled={isSubmitting}
-              />
-              <p className="text-sm text-muted-foreground">Upload an image or avatar for your chatbot.</p>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch id="isPublic" checked={formData.isPublic} onCheckedChange={handleSwitchChange} />
-              <Label htmlFor="isPublic">Make this chatbot public</Label>
-            </div>
-          </CardContent>
-
-          <CardHeader className="border-t pt-6">
-            <CardTitle>Knowledge Base</CardTitle>
-            <CardDescription>Provide information that your chatbot will use to answer questions.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Label htmlFor="knowledgeBase">Knowledge Base</Label>
-              <Textarea
-                id="knowledgeBase"
-                name="knowledgeBase"
-                placeholder="Add FAQs, product information, policies, etc..."
-                value={formData.knowledgeBase}
-                onChange={handleChange}
-                rows={10}
-                className="font-mono text-sm"
-              />
-              <p className="text-sm text-muted-foreground">
-                Add all the information your chatbot needs to answer questions about your business. Include FAQs,
-                product details, policies, and any other relevant information.
-              </p>
-            </div>
-          </CardContent>
-
-          <CardFooter className="flex justify-between border-t pt-6">
-            <Button type="button" variant="outline" onClick={() => router.push("/dashboard/chatbots")}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                "Create Chatbot"
-              )}
-            </Button>
-          </CardFooter>
-        </Card>
-      </form>
+    <div className="container mx-auto py-6 space-y-6">
+      <h1 className="text-3xl font-bold tracking-tight">Novo Chatbot</h1>
+      <Separator />
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome</FormLabel>
+                <FormControl>
+                  <Input placeholder="Nome do Chatbot" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit" disabled={loading}>
+            Criar
+            <Plus className="w-4 h-4 ml-2" />
+          </Button>
+        </form>
+      </Form>
     </div>
   )
 }
