@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server"
+
+// This API route relies on request headers for authentication and cannot be
+// statically optimized. Mark it as dynamic so Next.js always executes it on
+// the server.
+export const dynamic = "force-dynamic"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { checkUserLimits, assignFreePlanToUser } from "@/lib/usage-limits"
