@@ -1,7 +1,6 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Bot, Briefcase, ReplaceIcon as Customize, MessageSquare } from "lucide-react"
-import { LocalizedWelcome } from "@/components/localized-welcome"
 
 export default function Home() {
   return (
@@ -25,7 +24,6 @@ export default function Home() {
       <main className="flex-1">
         <section className="py-20 md:py-32">
           <div className="container flex flex-col items-center text-center">
-            <LocalizedWelcome />
             <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
               Intelligent Chatbots for Your Business
             </h1>
