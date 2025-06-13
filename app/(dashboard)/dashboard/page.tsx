@@ -13,10 +13,17 @@ import { redirect } from "next/navigation"
 export const dynamic = "force-dynamic" // Disable caching for this page
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions)
+  // Verificar a sessão com tratamento de erro
+  let session
+  try {
+    session = await getServerSession(authOptions)
 
-  if (!session) {
-    redirect("/login")
+    if (!session) {
+      redirect("/login")
+    }
+  } catch (e) {
+    console.error("Error getting session:", e)
+    redirect("/login?error=session")
   }
 
   // Get user ID from session
@@ -37,6 +44,8 @@ export default async function DashboardPage() {
   } catch (e) {
     console.error("Error fetching chatbots:", e)
     error = e instanceof Error ? e.message : "Failed to fetch chatbots"
+    // Não deixar o erro quebrar a página
+    chatbots = []
   }
 
   // Fetch some basic insights
@@ -57,7 +66,7 @@ export default async function DashboardPage() {
           SELECT id FROM "Chatbot" WHERE "userId" = ${userId}
         )
       `
-      insights.totalMessages = messagesResult[0]?.count || 0
+      insights.totalMessages = messagesResult?.[0]?.count || 0
 
       // Get total sessions
       const sessionsResult = await sql`
@@ -67,7 +76,7 @@ export default async function DashboardPage() {
           SELECT id FROM "Chatbot" WHERE "userId" = ${userId}
         )
       `
-      insights.totalSessions = sessionsResult[0]?.count || 0
+      insights.totalSessions = sessionsResult?.[0]?.count || 0
 
       // Get active users (unique users in the last 30 days)
       const activeUsersResult = await sql`
@@ -78,7 +87,7 @@ export default async function DashboardPage() {
         )
         AND "createdAt" > NOW() - INTERVAL '30 days'
       `
-      insights.activeUsers = activeUsersResult[0]?.count || 0
+      insights.activeUsers = activeUsersResult?.[0]?.count || 0
 
       // Get average response time
       const avgTimeResult = await sql`
@@ -89,7 +98,7 @@ export default async function DashboardPage() {
         )
         AND "role" = 'assistant'
       `
-      insights.avgResponseTime = Math.round(avgTimeResult[0]?.avg_time || 0)
+      insights.avgResponseTime = Math.round(avgTimeResult?.[0]?.avg_time || 0)
     }
   } catch (e) {
     console.error("Error fetching insights:", e)
@@ -102,7 +111,7 @@ export default async function DashboardPage() {
     const result = await sql`
       SELECT COUNT(*) as count FROM "Chatbot" WHERE "userId" = ${session.user.id}
     `
-    chatbotCount = result[0] || { count: 0 }
+    chatbotCount = result?.[0] || { count: 0 }
   } catch (e) {
     console.error("Error fetching chatbot count:", e)
   }

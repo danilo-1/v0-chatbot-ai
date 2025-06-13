@@ -14,10 +14,17 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const session = await getServerSession(authOptions)
+  let session
 
-  if (!session?.user) {
-    redirect("/login")
+  try {
+    session = await getServerSession(authOptions)
+
+    if (!session?.user) {
+      redirect("/login")
+    }
+  } catch (e) {
+    console.error("Error getting session in dashboard layout:", e)
+    redirect("/login?error=session")
   }
 
   return (

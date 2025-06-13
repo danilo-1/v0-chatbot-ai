@@ -7,19 +7,34 @@ if (typeof globalThis.WebSocket !== "undefined") {
 }
 
 // Create a SQL client using Neon with error handling
-export const sql = (query: string, ...args: any[]) => {
+export const sql = async (...args: any[]) => {
   const connectionString = process.env.DATABASE_URL || ""
-  if (!/^postgres(ql)?:\/\//.test(connectionString)) {
-    throw new Error(
-      "Invalid DATABASE_URL: must start with 'postgres://' or 'postgresql://'"
-    )
+
+  // Verificar se a string de conexão é válida
+  if (!connectionString) {
+    console.error("DATABASE_URL is not defined")
+    return []
   }
+
+  if (!/^postgres(ql)?:\/\//.test(connectionString)) {
+    console.error("Invalid DATABASE_URL format: must start with 'postgres://' or 'postgresql://'")
+    return []
+  }
+
   try {
     const neonClient = neon(connectionString)
-    return neonClient(query, ...args)
+
+    // Se o primeiro argumento for uma string (query SQL)
+    if (typeof args[0] === "string") {
+      return await neonClient(args[0], ...args.slice(1))
+    }
+
+    // Se for um template string (sql`query`)
+    return await neonClient(...args)
   } catch (error) {
     console.error("Neon SQL client error:", error)
-    throw error
+    // Retornar um array vazio em vez de lançar erro
+    return []
   }
 }
 
