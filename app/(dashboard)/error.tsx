@@ -16,6 +16,16 @@ export default function DashboardError({
   useEffect(() => {
     // Log the error to an error reporting service
     console.error("Dashboard error:", error)
+    fetch("/api/telemetry/error", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: error.message,
+        digest: error.digest,
+        stack: error.stack,
+        path: window.location.pathname,
+      }),
+    }).catch((e) => console.error("Telemetry send failed", e))
   }, [error])
 
   return (
