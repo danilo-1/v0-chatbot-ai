@@ -13,7 +13,7 @@ A platform for creating customizable AI chatbots for websites.
 ## Tech Stack
 
 - Next.js 14 with App Router
-- SQLite database with Prisma ORM
+- PostgreSQL database with Prisma ORM
 - NextAuth.js for authentication
 - OpenAI integration via AI SDK
 - Tailwind CSS with shadcn/ui components
@@ -48,7 +48,7 @@ A platform for creating customizable AI chatbots for websites.
 
 ### Environment Variables
 
-- `DATABASE_URL`: SQLite database URL
+- `DATABASE_URL`: PostgreSQL database URL
 - `NEXTAUTH_URL`: URL of your application
 - `NEXTAUTH_SECRET`: Secret for NextAuth.js
 - `GOOGLE_CLIENT_ID`: Google OAuth client ID
@@ -73,7 +73,7 @@ Let's create a .env.example file:
 
 \`\`\`plaintext file=".env.example"
 # Database
-DATABASE_URL="file:./prisma/dev.db"
+DATABASE_URL="postgresql://user:password@localhost:5432/dbname"
 
 # Authentication
 NEXTAUTH_URL=http://localhost:3000
