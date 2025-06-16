@@ -1,180 +1,275 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import dynamic from "next/dynamic"
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, FileText, Code, Database } from "lucide-react"
-
-// Importação dinâmica do SwaggerUI para evitar problemas de SSR
-const SwaggerUI = dynamic(() => import("swagger-ui-react"), { ssr: false })
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Search, Code, Database, Shield, Zap, ExternalLink } from "lucide-react"
+import { EndpointCard } from "@/components/docs/endpoint-card"
+import { CodeBlock } from "@/components/docs/code-block"
+import { apiEndpoints, apiTags } from "@/lib/api-docs"
 
 export default function DocsPage() {
-  const [spec, setSpec] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedTag, setSelectedTag] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetch("/api/docs")
-      .then((res) => res.json())
-      .then((data) => {
-        setSpec(data)
-        setLoading(false)
-      })
-      .catch((err) => {
-        console.error("Erro ao carregar especificação:", err)
-        setLoading(false)
-      })
-  }, [])
+  const filteredEndpoints = apiEndpoints.filter((endpoint) => {
+    const matchesSearch =
+      endpoint.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      endpoint.path.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      endpoint.description.toLowerCase().includes(searchTerm.toLowerCase())
 
-  if (loading) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    )
+    const matchesTag = !selectedTag || endpoint.tags.includes(selectedTag)
+
+    return matchesSearch && matchesTag
+  })
+
+  const quickStartCode = `// Instalar dependências
+npm install axios
+
+// Exemplo de uso básico
+import axios from 'axios'
+
+const api = axios.create({
+  baseURL: '${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api',
+  headers: {
+    'Content-Type': 'application/json'
   }
+})
+
+// Listar chatbots
+const chatbots = await api.get('/chatbots')
+
+// Conversar com um chatbot
+const response = await api.post('/chatbots/chatbot_123/chat', {
+  message: 'Olá!',
+  sessionId: 'session_456'
+})`
+
+  const authCode = `// Autenticação com Session (Browser)
+// A autenticação é automática via cookies de sessão
+
+// Autenticação com Bearer Token (API)
+const api = axios.create({
+  baseURL: '${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json'
+  }
+})`
 
   return (
-    <div className="container mx-auto py-8 space-y-8">
+    <div className="container mx-auto py-8 max-w-6xl">
       {/* Header */}
-      <div className="text-center space-y-4">
+      <div className="text-center space-y-4 mb-12">
         <h1 className="text-4xl font-bold">API Documentation</h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Documentação completa da API do Chatbot AI. Explore todos os endpoints disponíveis, teste as funcionalidades e
-          integre com sua aplicação.
+        <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+          Documentação completa da API do Chatbot AI. Integre facilmente chatbots inteligentes em suas aplicações.
         </p>
         <div className="flex justify-center gap-2">
-          <Badge variant="secondary">OpenAPI 3.0</Badge>
           <Badge variant="secondary">REST API</Badge>
           <Badge variant="secondary">JSON</Badge>
+          <Badge variant="secondary">OpenAPI 3.0</Badge>
         </div>
       </div>
 
-      {/* Quick Links */}
-      <div className="grid md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Code className="h-5 w-5" />
-              Endpoints
-            </CardTitle>
-            <CardDescription>Explore todos os endpoints disponíveis</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Chatbots</span>
-                <Badge variant="outline">12 endpoints</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span>Autenticação</span>
-                <Badge variant="outline">4 endpoints</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span>Admin</span>
-                <Badge variant="outline">8 endpoints</Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="overview" className="space-y-8">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+          <TabsTrigger value="quickstart">Início Rápido</TabsTrigger>
+          <TabsTrigger value="endpoints">Endpoints</TabsTrigger>
+          <TabsTrigger value="authentication">Autenticação</TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5" />
-              Modelos
-            </CardTitle>
-            <CardDescription>Estruturas de dados utilizadas</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>User</span>
-                <Badge variant="outline">Schema</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span>Chatbot</span>
-                <Badge variant="outline">Schema</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span>Message</span>
-                <Badge variant="outline">Schema</Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Overview */}
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Code className="h-5 w-5 text-blue-500" />
+                  Endpoints
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{apiEndpoints.length}</div>
+                <p className="text-sm text-muted-foreground">Total de endpoints</p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Recursos
-            </CardTitle>
-            <CardDescription>Links úteis e recursos adicionais</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button variant="outline" size="sm" className="w-full justify-start" asChild>
-              <a href="/api/docs" target="_blank" rel="noreferrer">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                JSON Spec
-              </a>
-            </Button>
-            <Button variant="outline" size="sm" className="w-full justify-start" asChild>
-              <a href="/dashboard" target="_blank" rel="noreferrer">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Dashboard
-              </a>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Database className="h-5 w-5 text-green-500" />
+                  Recursos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{apiTags.length}</div>
+                <p className="text-sm text-muted-foreground">Categorias de API</p>
+              </CardContent>
+            </Card>
 
-      {/* Swagger UI */}
-      <Card>
-        <CardHeader>
-          <CardTitle>API Explorer</CardTitle>
-          <CardDescription>Interface interativa para testar os endpoints da API</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          {spec && (
-            <div className="swagger-container">
-              <SwaggerUI
-                spec={spec}
-                docExpansion="list"
-                defaultModelsExpandDepth={2}
-                defaultModelExpandDepth={2}
-                displayRequestDuration={true}
-                tryItOutEnabled={true}
-                filter={true}
-                showExtensions={true}
-                showCommonExtensions={true}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Shield className="h-5 w-5 text-orange-500" />
+                  Segurança
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">OAuth 2.0</div>
+                <p className="text-sm text-muted-foreground">Autenticação segura</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Zap className="h-5 w-5 text-purple-500" />
+                  Performance
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">99.9%</div>
+                <p className="text-sm text-muted-foreground">Uptime garantido</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Recursos Principais</CardTitle>
+                <CardDescription>Funcionalidades disponíveis na API</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span>Gerenciamento completo de chatbots</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>Chat em tempo real com IA</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span>Múltiplos modelos de IA</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  <span>Analytics e insights</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Links Úteis</CardTitle>
+                <CardDescription>Recursos adicionais para desenvolvedores</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button variant="outline" className="w-full justify-start" asChild>
+                  <a href="/dashboard" target="_blank" rel="noreferrer">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Dashboard
+                  </a>
+                </Button>
+                <Button variant="outline" className="w-full justify-start" asChild>
+                  <a href="/api/docs" target="_blank" rel="noreferrer">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    OpenAPI Spec
+                  </a>
+                </Button>
+                <Button variant="outline" className="w-full justify-start" asChild>
+                  <a href="https://github.com" target="_blank" rel="noreferrer">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    GitHub
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Quick Start */}
+        <TabsContent value="quickstart" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Início Rápido</CardTitle>
+              <CardDescription>Comece a usar a API em poucos minutos</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CodeBlock code={quickStartCode} language="javascript" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Endpoints */}
+        <TabsContent value="endpoints" className="space-y-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar endpoints..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
               />
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant={selectedTag === null ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedTag(null)}
+              >
+                Todos
+              </Button>
+              {apiTags.map((tag) => (
+                <Button
+                  key={tag.name}
+                  variant={selectedTag === tag.name ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedTag(tag.name)}
+                >
+                  {tag.name}
+                </Button>
+              ))}
+            </div>
+          </div>
 
-      <style jsx global>{`
-        .swagger-container .swagger-ui {
-          font-family: inherit;
-        }
-        .swagger-ui .topbar {
-          display: none;
-        }
-        .swagger-ui .info {
-          margin: 20px 0;
-        }
-        .swagger-ui .scheme-container {
-          background: transparent;
-          box-shadow: none;
-          padding: 0;
-        }
-      `}</style>
+          <div className="space-y-4">
+            {filteredEndpoints.map((endpoint, index) => (
+              <EndpointCard key={`${endpoint.method}-${endpoint.path}-${index}`} endpoint={endpoint} />
+            ))}
+          </div>
+
+          {filteredEndpoints.length === 0 && (
+            <Card>
+              <CardContent className="text-center py-12">
+                <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Nenhum endpoint encontrado</h3>
+                <p className="text-muted-foreground">Tente ajustar sua busca ou filtros</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Authentication */}
+        <TabsContent value="authentication" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Autenticação</CardTitle>
+              <CardDescription>Como autenticar suas requisições à API</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CodeBlock code={authCode} language="javascript" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
