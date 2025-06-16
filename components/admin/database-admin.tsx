@@ -26,16 +26,16 @@ interface Table {
 }
 
 const EXPECTED_TABLES = [
-  "users",
-  "chatbots",
-  "conversations",
-  "messages",
-  "subscriptions",
-  "subscription_plans",
-  "ai_models",
-  "openai_models",
-  "global_config",
-  "need_help_requests",
+  "User",
+  "Account",
+  "Session",
+  "VerificationToken",
+  "Chatbot",
+  "GlobalConfig",
+  "Plan",
+  "Subscription",
+  "UserUsageStats",
+  "AIModel",
 ]
 
 export function DatabaseAdmin() {
@@ -46,6 +46,7 @@ export function DatabaseAdmin() {
   const [sqlQuery, setSqlQuery] = useState("")
   const [sqlResult, setSqlResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
   const { toast } = useToast()
 
   const fetchTables = async () => {
@@ -64,11 +65,11 @@ export function DatabaseAdmin() {
 
       // Verificar status de cada tabela esperada
       const tableStatus: Table[] = EXPECTED_TABLES.map((tableName) => {
-        const exists = existingTables.includes(tableName)
+        const exists = existingTables.some((table: string) => table.toLowerCase() === tableName.toLowerCase())
         return {
           name: tableName,
           status: exists ? "active" : "missing",
-          rowCount: exists ? Math.floor(Math.random() * 100) : 0, // Placeholder
+          rowCount: exists ? Math.floor(Math.random() * 100) : 0,
           lastUpdated: exists ? new Date().toISOString() : undefined,
         }
       })
@@ -120,15 +121,13 @@ export function DatabaseAdmin() {
 
   const handleResetDatabase = async () => {
     try {
-      // Executar scripts de inicialização
-      const initResponse = await fetch("/api/init-db", { method: "POST" })
-      if (!initResponse.ok) {
-        throw new Error("Erro ao inicializar banco de dados")
-      }
+      setCreating(true)
 
-      const plansResponse = await fetch("/api/init-plans", { method: "POST" })
-      if (!plansResponse.ok) {
-        throw new Error("Erro ao inicializar planos")
+      // Primeiro, criar todas as tabelas
+      const createResponse = await fetch("/api/create-tables", { method: "POST" })
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json()
+        throw new Error(errorData.error || "Erro ao criar tabelas")
       }
 
       toast({
@@ -145,14 +144,19 @@ export function DatabaseAdmin() {
         description: errorMessage,
         variant: "destructive",
       })
+    } finally {
+      setCreating(false)
     }
   }
 
   const handleCreateMissingTables = async () => {
     try {
-      const initResponse = await fetch("/api/init-db", { method: "POST" })
-      if (!initResponse.ok) {
-        throw new Error("Erro ao criar tabelas")
+      setCreating(true)
+
+      const createResponse = await fetch("/api/create-tables", { method: "POST" })
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json()
+        throw new Error(errorData.error || "Erro ao criar tabelas")
       }
 
       toast({
@@ -168,6 +172,8 @@ export function DatabaseAdmin() {
         description: errorMessage,
         variant: "destructive",
       })
+    } finally {
+      setCreating(false)
     }
   }
 
@@ -280,24 +286,24 @@ export function DatabaseAdmin() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
-            <Button onClick={fetchTables} variant="outline">
-              <RefreshCw className="w-4 h-4 mr-2" />
+            <Button onClick={fetchTables} variant="outline" disabled={creating}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${creating ? "animate-spin" : ""}`} />
               Atualizar
             </Button>
 
             {missingTablesCount > 0 && (
-              <Button onClick={handleCreateMissingTables} variant="default">
-                <Plus className="w-4 h-4 mr-2" />
-                Criar Tabelas Ausentes ({missingTablesCount})
+              <Button onClick={handleCreateMissingTables} variant="default" disabled={creating}>
+                {creating ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+                {creating ? "Criando..." : `Criar Tabelas Ausentes (${missingTablesCount})`}
               </Button>
             )}
 
-            <Button onClick={() => setSqlDialogOpen(true)} variant="secondary">
+            <Button onClick={() => setSqlDialogOpen(true)} variant="secondary" disabled={creating}>
               <Edit className="w-4 h-4 mr-2" />
               Executar SQL
             </Button>
 
-            <Button onClick={() => setResetDialogOpen(true)} variant="destructive">
+            <Button onClick={() => setResetDialogOpen(true)} variant="destructive" disabled={creating}>
               <Trash2 className="w-4 h-4 mr-2" />
               Reset Completo
             </Button>
@@ -324,16 +330,20 @@ export function DatabaseAdmin() {
                     {getStatusBadge(table.status)}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {table.status === "active" && <span>~{table.rowCount} registros</span>}
+                    {table.status === "active" && <span>Tabela ativa no banco de dados</span>}
                     {table.status === "missing" && <span>Tabela não encontrada no banco de dados</span>}
                   </div>
                 </div>
 
                 <div className="flex gap-2">
                   {table.status === "missing" && (
-                    <Button size="sm" onClick={handleCreateMissingTables} variant="default">
-                      <Plus className="w-3 h-3 mr-1" />
-                      Criar
+                    <Button size="sm" onClick={handleCreateMissingTables} variant="default" disabled={creating}>
+                      {creating ? (
+                        <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                      ) : (
+                        <Plus className="w-3 h-3 mr-1" />
+                      )}
+                      {creating ? "Criando..." : "Criar"}
                     </Button>
                   )}
 
@@ -341,9 +351,10 @@ export function DatabaseAdmin() {
                     size="sm"
                     variant="outline"
                     onClick={() => {
-                      setSqlQuery(`SELECT * FROM ${table.name} LIMIT 10;`)
+                      setSqlQuery(`SELECT * FROM "${table.name}" LIMIT 10;`)
                       setSqlDialogOpen(true)
                     }}
+                    disabled={table.status === "missing"}
                   >
                     <Play className="w-3 h-3 mr-1" />
                     Query
@@ -364,16 +375,23 @@ export function DatabaseAdmin() {
               Confirmar Reset Completo
             </DialogTitle>
             <DialogDescription>
-              Esta ação irá <strong>deletar todos os dados</strong> e recriar todas as tabelas do zero. Esta operação
-              não pode ser desfeita.
+              Esta ação irá <strong>recriar todas as tabelas</strong> e inserir dados padrão. Dados existentes podem ser
+              preservados se as tabelas já existirem.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setResetDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setResetDialogOpen(false)} disabled={creating}>
               Cancelar
             </Button>
-            <Button variant="destructive" onClick={handleResetDatabase}>
-              Confirmar Reset
+            <Button variant="destructive" onClick={handleResetDatabase} disabled={creating}>
+              {creating ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Criando...
+                </>
+              ) : (
+                "Confirmar Reset"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -394,7 +412,7 @@ export function DatabaseAdmin() {
                 id="sql-query"
                 value={sqlQuery}
                 onChange={(e) => setSqlQuery(e.target.value)}
-                placeholder="SELECT * FROM users LIMIT 10;"
+                placeholder="SELECT * FROM &quot;User&quot; LIMIT 10;"
                 className="min-h-[100px] font-mono"
               />
             </div>

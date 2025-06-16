@@ -2,6 +2,14 @@ import { NextResponse } from "next/server"
 import { sql } from "@/lib/db"
 
 export async function GET() {
+  return await initializeDatabase()
+}
+
+export async function POST() {
+  return await initializeDatabase()
+}
+
+async function initializeDatabase() {
   try {
     // Check if GlobalConfig table exists and has the global record
     const globalConfig = await sql`
@@ -12,7 +20,7 @@ export async function GET() {
       )
     `
 
-    if (!globalConfig[0].exists) {
+    if (!globalConfig[0]?.exists) {
       // Create the GlobalConfig table if it doesn't exist
       await sql`
         CREATE TABLE IF NOT EXISTS "GlobalConfig" (
