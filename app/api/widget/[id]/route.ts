@@ -22,8 +22,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const chatbotName = chatbotData.name || "Assistente"
     const chatbotImageUrl = chatbotData.imageUrl || ""
 
-    // URL base correta da aplicação
-    const baseUrl = "https://v0-chatbot-ai-kf.vercel.app"
+    // Determine the base URL dynamically to avoid hard coded environments
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.NEXTAUTH_URL ||
+      request.headers.get("origin") ||
+      ""
 
     // Gerar o script do widget
     const widgetScript = `
