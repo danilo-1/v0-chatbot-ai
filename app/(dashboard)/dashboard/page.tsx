@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth/next"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, BarChart3, Users, MessageSquare, Zap } from "lucide-react"
+import { Plus, BarChart3, Users, MessageSquare, Zap, Activity as ActivityIcon } from "lucide-react"
 import Link from "next/link"
 import { sql } from "@/lib/db"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
@@ -12,7 +12,8 @@ import { AnalyticsCards } from "@/components/dashboard/analytics-cards"
 import { AnalyticsCharts } from "@/components/dashboard/analytics-charts"
 import { DashboardBreadcrumb } from "@/components/dashboard/dashboard-breadcrumb"
 import { redirect } from "next/navigation"
-import { Activity } from "@/components/dashboard/activity" // Import the Activity component
+// Componente de atividades recentes
+import { Activity } from "@/components/dashboard/activity"
 
 export const dynamic = "force-dynamic"
 
@@ -339,7 +340,7 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" /> {/* Use the imported Activity component */}
+                <ActivityIcon className="h-5 w-5" />
                 Atividade Recente
               </CardTitle>
               <CardDescription>Seus chatbots mais ativos</CardDescription>
