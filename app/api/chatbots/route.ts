@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next"
 import { sql } from "@/lib/db"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { getToken } from "next-auth/jwt"
+import { revalidatePath } from "next/cache"
 
 export async function GET(req: NextRequest) {
   try {
@@ -159,6 +160,13 @@ export async function POST(req: NextRequest) {
       `
 
       console.log("Verification query result:", verifyResult)
+
+      // Revalidate the dashboard chatbots page so the new bot appears immediately
+      try {
+        revalidatePath("/dashboard/chatbots")
+      } catch (revalidateError) {
+        console.error("Failed to revalidate /dashboard/chatbots:", revalidateError)
+      }
 
       return NextResponse.json(result[0])
     } catch (dbError) {
