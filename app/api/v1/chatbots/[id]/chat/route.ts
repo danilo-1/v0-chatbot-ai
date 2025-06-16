@@ -24,7 +24,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const chatbotId = params.id
 
     // Conectar ao banco de dados
-    const sql = neon(process.env.DATABASE_URL!)
+    const connectionString = process.env.DATABASE_URL
+    if (!connectionString) {
+      console.error("DATABASE_URL is not defined")
+      return new Response(
+        JSON.stringify({ error: "DATABASE_URL not configured" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        },
+      )
+    }
+
+    const sql = neon(connectionString)
 
     // Buscar o chatbot
     const chatbots = await sql`
@@ -185,7 +197,9 @@ If you don't know the answer, say so politely.`
     })
   } catch (error) {
     console.error("Erro ao processar requisição:", error)
-    return new Response(JSON.stringify({ error: "Failed to generate response" }), {
+    const message =
+      error instanceof Error ? error.message : "Failed to generate response"
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: {
         "Content-Type": "application/json",
