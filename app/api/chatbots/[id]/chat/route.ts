@@ -1,57 +1,133 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth/next"
+import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
-import { generateChatbotResponse } from "@/backend/chatbot"
-import { getToken } from "next-auth/jwt"
-import { incrementMessageCount, checkUserLimits } from "@/lib/usage-limits"
+import { db } from "@/lib/db"
+import { openai } from "@ai-sdk/openai"
+import { streamText } from "ai"
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+/**
+ * @swagger
+ * /api/chatbots/{id}/chat:
+ *   post:
+ *     summary: Envia uma mensagem para o chatbot
+ *     tags: [Chat]
+ *     security:
+ *       - sessionAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do chatbot
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - messages
+ *             properties:
+ *               messages:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     role:
+ *                       type: string
+ *                       enum: [user, assistant]
+ *                       description: Papel do remetente
+ *                     content:
+ *                       type: string
+ *                       description: Conteúdo da mensagem
+ *                 example:
+ *                   - role: "user"
+ *                     content: "Olá, como você pode me ajudar?"
+ *               sessionId:
+ *                 type: string
+ *                 description: ID da sessão (opcional)
+ *                 example: "session_123"
+ *     responses:
+ *       200:
+ *         description: Resposta do chatbot (stream)
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *       400:
+ *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Não autorizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Chatbot não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const chatbotId = params.id
-    const { messages, sessionData } = await req.json()
-
-    // Verificar autenticação
     const session = await getServerSession(authOptions)
-    const token = await getToken({ req })
-    const userId = session?.user?.id || token?.sub || token?.id
 
-    // Se o usuário estiver autenticado, verificar limites
-    if (userId) {
-      const limits = await checkUserLimits(userId)
-
-      // Se excedeu o limite de mensagens, retornar erro
-      if (!limits.isWithinMessageLimit) {
-        return NextResponse.json(
-          {
-            error: "Limite de mensagens excedido",
-            limitExceeded: true,
-            limits,
-          },
-          { status: 402 }, // Payment Required
-        )
-      }
-
-      // Incrementar contagem de mensagens
-      await incrementMessageCount(userId)
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
     }
 
-    // Gerar resposta do chatbot
-    const result = await generateChatbotResponse(chatbotId, messages, {
-      ...sessionData,
-      userId,
-    })
+    const { messages, sessionId } = await request.json()
 
-    // Retornar resposta como stream
-    return new Response(result.stream, {
-      headers: {
-        "Content-Type": "text/plain",
+    if (!messages || !Array.isArray(messages)) {
+      return NextResponse.json({ error: "Mensagens são obrigatórias" }, { status: 400 })
+    }
+
+    const chatbot = await db.chatbot.findFirst({
+      where: {
+        id: params.id,
+        OR: [{ user: { email: session.user.email } }, { isPublic: true }],
       },
     })
+
+    if (!chatbot) {
+      return NextResponse.json({ error: "Chatbot não encontrado" }, { status: 404 })
+    }
+
+    // Salvar mensagem do usuário
+    const userMessage = messages[messages.length - 1]
+    if (userMessage.role === "user") {
+      await db.chatMessage.create({
+        data: {
+          content: userMessage.content,
+          role: "user",
+          chatbotId: chatbot.id,
+          sessionId: sessionId || `session_${Date.now()}`,
+        },
+      })
+    }
+
+    const result = await streamText({
+      model: openai(chatbot.model || "gpt-3.5-turbo"),
+      messages: [
+        {
+          role: "system",
+          content: chatbot.instructions || "Você é um assistente útil.",
+        },
+        ...messages,
+      ],
+      temperature: chatbot.temperature || 0.7,
+      maxTokens: chatbot.maxTokens || 1000,
+    })
+
+    return result.toAIStreamResponse()
   } catch (error) {
-    console.error("Error in chat API:", error)
-    return NextResponse.json(
-      { error: "Failed to generate response", details: error instanceof Error ? error.message : String(error) },
-      { status: 500 },
-    )
+    console.error("Erro no chat:", error)
+    return NextResponse.json({ error: "Erro interno do servidor" }, { status: 500 })
   }
 }

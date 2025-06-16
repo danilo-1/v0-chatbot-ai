@@ -1,37 +1,66 @@
-import { Home, LayoutDashboard, Settings, User, Users, Database } from "lucide-react"
+import { BarChart, FileText, Home, Settings, ShoppingBag, User, Users } from "lucide-react"
 
-export const dashboardNavItems = [
-  {
-    title: "Geral",
-    href: "/dashboard",
-    icon: Home,
-  },
-  {
-    title: "Administração",
-    href: "/dashboard/admin",
-    icon: LayoutDashboard,
-    adminOnly: true,
-  },
-  {
-    title: "Usuários",
-    href: "/dashboard/users",
-    icon: Users,
-    adminOnly: true,
-  },
-  {
-    title: "Banco de Dados",
-    href: "/dashboard/admin/database",
-    icon: Database,
-    adminOnly: true,
-  },
-  {
-    title: "Perfil",
-    href: "/dashboard/profile",
-    icon: User,
-  },
-  {
-    title: "Configurações",
-    href: "/dashboard/settings",
-    icon: Settings,
-  },
-]
+import type { MainNavItem, SidebarNavItem } from "@/types"
+
+interface DashboardConfig {
+  mainNav: MainNavItem[]
+  sidebarNav: SidebarNavItem[]
+}
+
+export const dashboardConfig: DashboardConfig = {
+  mainNav: [
+    {
+      title: "Documentation",
+      href: "/docs",
+    },
+    {
+      title: "Support",
+      href: "/support",
+      disabled: true,
+    },
+  ],
+  sidebarNav: [
+    {
+      title: "Home",
+      href: "/dashboard",
+      icon: Home,
+    },
+    {
+      title: "Customers",
+      href: "/dashboard/customers",
+      icon: Users,
+    },
+    {
+      title: "Products",
+      href: "/dashboard/products",
+      icon: ShoppingBag,
+    },
+    {
+      title: "Orders",
+      href: "/dashboard/orders",
+      icon: BarChart,
+    },
+    {
+      title: "Invoices",
+      href: "/dashboard/invoices",
+      icon: FileText,
+      description: "Documentação da API",
+    },
+    {
+      title: "API Docs",
+      href: "/docs",
+      icon: FileText,
+      description: "Documentação da API",
+    },
+    {
+      title: "Account",
+      href: "/dashboard/account",
+      icon: User,
+    },
+    {
+      title: "Settings",
+      href: "/dashboard/settings",
+      icon: Settings,
+    },
+  ],
+}

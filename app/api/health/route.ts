@@ -1,43 +1,60 @@
-import { NextResponse } from "next/server"
-import { sql } from "@/lib/db"
-import prisma from "@/lib/db"
+import { type NextRequest, NextResponse } from "next/server"
+import { db } from "@/lib/db"
 
-export async function GET() {
-  const healthStatus = {
-    status: "ok",
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
-    nextAuthUrl: process.env.NEXTAUTH_URL ? "set" : "not set",
-    databaseConnection: "unknown",
-    prismaConnection: "unknown",
-    environmentVariables: {
-      DATABASE_URL: process.env.DATABASE_URL ? "set" : "not set",
-      NEXTAUTH_URL: process.env.NEXTAUTH_URL ? "set" : "not set",
-      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? "set" : "not set",
-      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? "set" : "not set",
-      GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ? "set" : "not set",
-      OPENAI_API_KEY: process.env.OPENAI_API_KEY ? "set" : "not set",
-    },
-  }
-
+/**
+ * @swagger
+ * /api/health:
+ *   get:
+ *     summary: Verifica o status da API e conexões
+ *     tags: [System]
+ *     responses:
+ *       200:
+ *         description: Sistema funcionando corretamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: "ok"
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                 database:
+ *                   type: string
+ *                   example: "connected"
+ *                 version:
+ *                   type: string
+ *                   example: "1.0.0"
+ *       503:
+ *         description: Serviço indisponível
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+export async function GET(request: NextRequest) {
   try {
-    // Test direct SQL connection
-    const sqlResult = await sql`SELECT 1 as test`
-    healthStatus.databaseConnection = sqlResult[0].test === 1 ? "connected" : "error"
-  } catch (error) {
-    console.error("Health check SQL error:", error)
-    healthStatus.databaseConnection = "error"
-  }
+    // Teste de conexão com o banco
+    await db.$queryRaw`SELECT 1`
 
-  try {
-    // Test Prisma connection
-    const prismaResult = await prisma.$queryRaw`SELECT 1 as test`
-    // @ts-ignore
-    healthStatus.prismaConnection = prismaResult[0].test === 1 ? "connected" : "error"
+    return NextResponse.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      database: "connected",
+      version: "1.0.0",
+    })
   } catch (error) {
-    console.error("Health check Prisma error:", error)
-    healthStatus.prismaConnection = "error"
+    console.error("Health check failed:", error)
+    return NextResponse.json(
+      {
+        status: "error",
+        timestamp: new Date().toISOString(),
+        database: "disconnected",
+        error: "Database connection failed",
+      },
+      { status: 503 },
+    )
   }
-
-  return NextResponse.json(healthStatus)
 }

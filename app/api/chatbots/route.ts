@@ -1,192 +1,162 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth/next"
-import { sql } from "@/lib/db"
+import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
-import { getToken } from "next-auth/jwt"
-import { revalidatePath } from "next/cache"
+import { db } from "@/lib/db"
 
-export async function GET(req: NextRequest) {
+/**
+ * @swagger
+ * /api/chatbots:
+ *   get:
+ *     summary: Lista todos os chatbots do usuário
+ *     tags: [Chatbots]
+ *     security:
+ *       - sessionAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de chatbots
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Chatbot'
+ *       401:
+ *         description: Não autorizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *   post:
+ *     summary: Cria um novo chatbot
+ *     tags: [Chatbots]
+ *     security:
+ *       - sessionAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - description
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Nome do chatbot
+ *                 example: "Assistente de Vendas"
+ *               description:
+ *                 type: string
+ *                 description: Descrição do chatbot
+ *                 example: "Chatbot para auxiliar nas vendas"
+ *               instructions:
+ *                 type: string
+ *                 description: Instruções para o chatbot
+ *                 example: "Você é um assistente de vendas especializado..."
+ *               model:
+ *                 type: string
+ *                 description: Modelo de IA a ser usado
+ *                 example: "gpt-4"
+ *               temperature:
+ *                 type: number
+ *                 minimum: 0
+ *                 maximum: 2
+ *                 description: Temperatura do modelo
+ *                 example: 0.7
+ *               maxTokens:
+ *                 type: integer
+ *                 minimum: 1
+ *                 description: Máximo de tokens por resposta
+ *                 example: 1000
+ *               isPublic:
+ *                 type: boolean
+ *                 description: Se o chatbot é público
+ *                 example: false
+ *     responses:
+ *       201:
+ *         description: Chatbot criado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Chatbot'
+ *       400:
+ *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Não autorizado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+export async function GET(request: NextRequest) {
   try {
-    console.log("GET /api/chatbots - Starting")
-
     const session = await getServerSession(authOptions)
-    const token = await getToken({ req })
 
-    // Try to get user ID from multiple sources
-    const userId = session?.user?.id || token?.sub || token?.id
-
-    console.log("User ID from session/token:", userId)
-
-    const searchParams = req.nextUrl.searchParams
-    const requestedUserId = searchParams.get("userId")
-
-    console.log("Requested user ID from query:", requestedUserId)
-
-    // If a specific user's chatbots are requested and it matches the authenticated user
-    if (requestedUserId && userId === requestedUserId) {
-      console.log("Fetching chatbots for specific user:", userId)
-
-      // Get user's chatbots with direct SQL
-      const chatbots = await sql`
-        SELECT c.*, u.name as "userName"
-        FROM "Chatbot" c
-        JOIN "User" u ON c."userId" = u.id
-        WHERE c."userId" = ${userId}
-        ORDER BY c."createdAt" DESC
-      `
-
-      console.log(`Found ${chatbots.length} chatbots for user ${userId}`)
-      return NextResponse.json(chatbots)
-    } else {
-      console.log("Fetching public chatbots")
-
-      // Get public chatbots
-      const chatbots = await sql`
-        SELECT c.*, u.name as "userName"
-        FROM "Chatbot" c
-        JOIN "User" u ON c."userId" = u.id
-        WHERE c."isPublic" = true
-        ORDER BY c."createdAt" DESC
-      `
-
-      console.log(`Found ${chatbots.length} public chatbots`)
-      return NextResponse.json(chatbots)
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
     }
+
+    const chatbots = await db.chatbot.findMany({
+      where: {
+        user: {
+          email: session.user.email,
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    })
+
+    return NextResponse.json(chatbots)
   } catch (error) {
-    console.error("Error fetching chatbots:", error)
-    return NextResponse.json({ error: "Failed to fetch chatbots" }, { status: 500 })
+    console.error("Erro ao buscar chatbots:", error)
+    return NextResponse.json({ error: "Erro interno do servidor" }, { status: 500 })
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    console.log("POST /api/chatbots - Starting")
-
-    // Get session using both methods to ensure we have user ID
     const session = await getServerSession(authOptions)
-    const token = await getToken({ req })
 
-    console.log("Session from getServerSession:", session)
-    console.log("Token from getToken:", token)
-
-    // Try to get user ID from multiple sources
-    const userId = session?.user?.id || token?.sub || token?.id
-
-    console.log("Resolved userId:", userId)
-
-    if (!userId) {
-      console.log("Unauthorized - No valid user ID found")
-      return NextResponse.json({ error: "Unauthorized - No valid user ID found" }, { status: 401 })
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
     }
 
-    let data
-    try {
-      data = await req.json()
-      console.log("Request data:", data)
-    } catch (parseError) {
-      console.error("Error parsing request body:", parseError)
-      return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
+    const body = await request.json()
+    const { name, description, instructions, model, temperature, maxTokens, isPublic } = body
+
+    if (!name || !description) {
+      return NextResponse.json({ error: "Nome e descrição são obrigatórios" }, { status: 400 })
     }
 
-    // Validate required fields
-    if (!data.name) {
-      console.log("Validation error: Name is required")
-      return NextResponse.json({ error: "Name is required" }, { status: 400 })
+    const user = await db.user.findUnique({
+      where: { email: session.user.email },
+    })
+
+    if (!user) {
+      return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 })
     }
 
-    console.log("Attempting to create chatbot in database with userId:", userId)
-
-    try {
-      // Check if User exists
-      const userCheck = await sql`
-        SELECT EXISTS (
-          SELECT 1 FROM "User" WHERE id = ${userId}
-        )
-      `
-
-      console.log("User check result:", userCheck)
-
-      if (!userCheck[0].exists) {
-        console.error("User does not exist in database")
-        return NextResponse.json({ error: "User not found in database" }, { status: 404 })
-      }
-
-      // Generate a UUID for the chatbot
-      const uuidResult = await sql`SELECT gen_random_uuid() as uuid`
-      const chatbotId = uuidResult[0].uuid
-
-      console.log("Generated chatbot ID:", chatbotId)
-
-      // Create chatbot using SQL with explicit values
-      const result = await sql`
-        INSERT INTO "Chatbot" (
-          id,
-          name,
-          description,
-          "isPublic",
-          "userId",
-          "temperature",
-          "maxTokens",
-          "knowledgeBase",
-          "customPrompt",
-          "createdAt",
-          "updatedAt"
-        ) VALUES (
-          ${chatbotId},
-          ${data.name},
-          ${data.description || ""},
-          ${data.isPublic || false},
-          ${userId},
-          ${data.temperature || 0.7},
-          ${data.maxTokens || 1000},
-          ${data.knowledgeBase || ""},
-          ${data.customPrompt || ""},
-          NOW(),
-          NOW()
-        )
-        RETURNING *
-      `
-
-      console.log("Database insert result:", result)
-
-      if (result.length === 0) {
-        console.error("No result returned from insert")
-        throw new Error("No result returned from database")
-      }
-
-      // Double-check that the chatbot was created
-      const verifyResult = await sql`
-        SELECT * FROM "Chatbot" WHERE id = ${chatbotId}
-      `
-
-      console.log("Verification query result:", verifyResult)
-
-      // Revalidate the dashboard chatbots page so the new bot appears immediately
-      try {
-        revalidatePath("/dashboard/chatbots")
-      } catch (revalidateError) {
-        console.error("Failed to revalidate /dashboard/chatbots:", revalidateError)
-      }
-
-      return NextResponse.json(result[0])
-    } catch (dbError) {
-      console.error("Database error:", dbError)
-      return NextResponse.json(
-        {
-          error: "Database error",
-          details: dbError instanceof Error ? dbError.message : String(dbError),
-        },
-        { status: 500 },
-      )
-    }
-  } catch (error) {
-    console.error("Unhandled error in POST /api/chatbots:", error)
-    return NextResponse.json(
-      {
-        error: "Failed to create chatbot",
-        details: error instanceof Error ? error.message : String(error),
+    const chatbot = await db.chatbot.create({
+      data: {
+        name,
+        description,
+        instructions: instructions || "",
+        model: model || "gpt-3.5-turbo",
+        temperature: temperature || 0.7,
+        maxTokens: maxTokens || 1000,
+        isPublic: isPublic || false,
+        userId: user.id,
       },
-      { status: 500 },
-    )
+    })
+
+    return NextResponse.json(chatbot, { status: 201 })
+  } catch (error) {
+    console.error("Erro ao criar chatbot:", error)
+    return NextResponse.json({ error: "Erro interno do servidor" }, { status: 500 })
   }
 }
